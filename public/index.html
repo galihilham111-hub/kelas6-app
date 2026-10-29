@@ -68,7 +68,7 @@ function cek(){
  while(S.i<Q.length&&Q[S.i].if&&!Q[S.i].if(S.a))S.i++;
  if(S.i>=Q.length)return kirimCek();
  const q=Q[S.i];S.sel=[];
- app.innerHTML=`<div class=c><div class=bar><i style="width:${S.i/Q.length*100}%"></i></div><h1>Hai ${esc(S.nama)}! 👋</h1><h2>${q.t}</h2>${q.o.map((o,j)=>`<button class="b o" data-j="${j}">${o[1]}</button>`).join('')}${q.multi?'<button class=b id=nx>Lanjut ➜</button>':''}</div>`;
+ app.innerHTML=`<div class=c><div class=bar><i style="width:${S.i/Q.length*100}%"></i></div><h1>Hai ${esc(S.nama)}! 👋</h1><h2>${q.t} <button class="b s g" id=sp>🔊</button></h2>${q.o.map((o,j)=>`<button class="b o" data-j="${j}">${o[1]}</button>`).join('')}${q.multi?'<button class=b id=nx>Lanjut ➜</button>':''}</div>`;
  app.querySelectorAll('.o').forEach(b=>b.onclick=()=>{
   const v=q.o[b.dataset.j][0];
   if(!q.multi){S.a[q.k]=v;S.i++;return cek()}
@@ -77,6 +77,7 @@ function cek(){
   b.classList.toggle('on',S.sel.includes(v));
  });
  if(q.multi)$('#nx').onclick=()=>{S.a[q.k]=S.sel;S.i++;cek()};
+ $('#sp').onclick=()=>bicara(q.t);
 }
 async function kirimCek(){
  app.innerHTML='<div class=c><h2>Menyimpan…</h2></div>';
@@ -91,8 +92,9 @@ async function misi(){
 }
 function soal(){
  const q=S.m[S.n],o=[0,1,2,3].sort(()=>Math.random()-.5);
- app.innerHTML=`<div class=c><div class=bar><i style="width:${S.n/S.m.length*100}%"></i></div><h2>🎯 Misi ${S.n+1}/${S.m.length}</h2>${q.bacaan?`<div class=k>${esc(q.bacaan)}</div>`:''}<h3>${esc(q.pertanyaan)}</h3>${o.map(i=>`<button class="b o" data-i="${i}">${esc(q.opsi[i])}</button>`).join('')}</div>`;
+ app.innerHTML=`<div class=c><div class=bar><i style="width:${S.n/S.m.length*100}%"></i></div><h2>🎯 Misi ${S.n+1}/${S.m.length}</h2>${q.bacaan?`<div class=k>${esc(q.bacaan)}</div>`:''}<h3>${esc(q.pertanyaan)} <button class="b s g" id=sp>🔊</button></h3>${o.map(i=>`<button class="b o" data-i="${i}">${esc(q.opsi[i])}</button>`).join('')}</div>`;
  app.querySelectorAll('.o').forEach(b=>b.onclick=()=>{S.j.push({soal_id:q.id,pilihan:+b.dataset.i});S.n++;S.n<S.m.length?soal():kirimM()});
+ $('#sp').onclick=()=>bicara((q.bacaan||'')+' '+q.pertanyaan);
 }
 async function kirimM(){
  app.innerHTML='<div class=c><h2>Mengirim…</h2></div>';
@@ -104,13 +106,13 @@ function selesai(n,sudah){
 }
 
 /* ================= GURU ================= */
-let K,SW=[],SS=null,tab='d',tm;
+let K,KL=[],SW=[],SS=null,tab='d',tm;
 async function guru(){
  const{data:{session}}=await sb.auth.getSession();
  if(!session)return login();
- const{data:k}=await sb.from('kelas').select('*').limit(1);
+ const{data:k}=await sb.from('kelas').select('*').order('tingkat').order('nama');
  if(!k||!k.length){await sb.auth.signOut();return login('Akun ini belum terdaftar sebagai guru.')}
- K=k[0];await muat();ui();
+ KL=k;K=k.find(x=>x.id==localStorage.getItem('kelasId'))||k[0];await muat();ui();
 }
 function login(m){
  app.innerHTML=`<div class=c><h1>Masuk Guru</h1>${m?`<p class=e>${esc(m)}</p>`:''}<input id=em type=email placeholder=Email><input id=pw type=password placeholder="Kata sandi"><button class=b id=go>Masuk</button></div>`;
@@ -125,8 +127,9 @@ async function muat(){
 }
 function ui(){
  clearInterval(tm);
- app.innerHTML=`<div class=w><nav><button class="b s ${tab=='d'?'':'g'}" id=t1>Dasbor</button><button class="b s ${tab=='s'?'':'g'}" id=t2>Siswa &amp; Kartu</button><button class="b s ${tab=='k'?'':'g'}" id=t5>Kelompok &amp; Model</button><button class="b s ${tab=='m'?'':'g'}" id=t6>Modul Ajar</button><button class="b s ${tab=='b'?'':'g'}" id=t4>Bank Soal</button><button class="b s g" id=t3>Keluar</button></nav><div id=bd></div></div>`;
- $('#t1').onclick=()=>{tab='d';ui()};$('#t4').onclick=()=>{tab='b';ui()};$('#t5').onclick=()=>{tab='k';ui()};$('#t6').onclick=()=>{tab='m';ui()};$('#t2').onclick=()=>{tab='s';ui()};
+ app.innerHTML=`<div class=w><div style="display:flex;gap:6px;align-items:center;margin-bottom:8px"><b>Kelas:</b><select id=kl>${KL.map(x=>`<option value="${x.id}" ${x.id==K.id?'selected':''}>${esc(x.nama)} (Fase ${x.fase})`).join('')}</select><button class="b s g" id=kb>＋ Kelas baru</button></div><nav><button class="b s ${tab=='d'?'':'g'}" id=t1>Dasbor</button><button class="b s ${tab=='s'?'':'g'}" id=t2>Siswa &amp; Kartu</button><button class="b s ${tab=='k'?'':'g'}" id=t5>Kelompok &amp; Model</button><button class="b s ${tab=='m'?'':'g'}" id=t6>Modul Ajar</button><button class="b s ${tab=='b'?'':'g'}" id=t4>Bank Soal</button><button class="b s g" id=t3>Keluar</button></nav><div id=bd></div></div>`;
+ $('#t1').onclick=()=>{tab='d';ui()};$('#kb').onclick=kelasBaru;
+ $('#kl').onchange=async e=>{K=KL.find(x=>x.id==e.target.value);localStorage.setItem('kelasId',K.id);G=null;PK=null;W={id:null,isi:{}};F={};await muat();ui()};$('#t4').onclick=()=>{tab='b';ui()};$('#t5').onclick=()=>{tab='k';ui()};$('#t6').onclick=()=>{tab='m';ui()};$('#t2').onclick=()=>{tab='s';ui()};
  $('#t3').onclick=async()=>{await sb.auth.signOut();login()};
  tab=='d'?dasbor():tab=='s'?siswaTab():tab=='k'?kel():tab=='m'?mod():bank();
  if(tab=='d'&&SS&&SS.status=='buka')tm=setInterval(async()=>{await muat();dasbor()},5000);
@@ -166,11 +169,13 @@ function siswaTab(){
 const PJ={literasi:'LITERASI: setiap soal punya "bacaan" berupa teks pendek 2-4 kalimat (cerita, informasi, atau pengumuman), lalu satu pertanyaan pemahaman tentang bacaan itu.',
 numerasi:'NUMERASI: soal cerita satu langkah (penjumlahan, pengurangan, perkalian, pembagian, pecahan, persen, keliling/luas, atau membaca data sederhana). "bacaan" boleh kosong "".',
 penalaran:'PENALARAN: soal logika atau pola sederhana (pola bilangan, urutan, sebab-akibat, mana yang tidak sesuai). "bacaan" boleh kosong "".'};
-function promptSoal(j,t,n,tema){return `Kamu adalah penyusun soal asesmen diagnostik untuk siswa SD kelas 6 (Fase C, Kurikulum Merdeka) di Indonesia. Buatkan ${n} soal pilihan ganda jenis ${PJ[j]}
+const FS={A:'bacaan 1-2 kalimat sangat pendek dengan kata sederhana; bilangan sampai 100; situasi sehari-hari; boleh memakai emoji sebagai ilustrasi.',B:'bacaan 2-3 kalimat; bilangan sampai 1.000, perkalian dan pembagian dasar, pecahan sederhana.',C:'bacaan 2-4 kalimat; pecahan, desimal, persen, keliling dan luas, penalaran satu langkah.'};
+function promptSoal(j,t,n,tema){return `Kamu adalah penyusun soal asesmen diagnostik untuk siswa SD kelas ${K.tingkat} (Fase ${K.fase}, Kurikulum Merdeka) di Indonesia. Buatkan ${n} soal pilihan ganda jenis ${PJ[j]}
 
 ATURAN:
 - Tingkat kesulitan: ${t} (1 = mudah, 2 = sedang, 3 = menantang), setara untuk semua soal.
 - Lintas mata pelajaran, bukan materi satu mapel tertentu.
+- Sesuaikan dengan kelas ${K.tingkat} (ikuti ini walau berbeda dari batas lain): ${FS[K.fase]}
 - Tepat 4 opsi: 1 jawaban benar dan 3 pengecoh yang masuk akal. Letak jawaban benar harus bervariasi.
 - "kunci" = nomor opsi yang benar, dimulai dari 0 (0 = opsi pertama, 3 = opsi keempat).
 - Konteks wajar untuk anak SD Indonesia (nama, tempat, situasi sehari-hari), tanpa konten sensitif.
@@ -181,9 +186,9 @@ FORMAT: keluarkan HANYA JSON array yang valid, tanpa teks lain dan tanpa tanda \
 {"tema":"...","bacaan":"...","pertanyaan":"...","opsi":["...","...","...","..."],"kunci":0,"penjelasan":"satu kalimat alasan jawaban benar"}`}
 async function setS(ids,s){const{error}=await sb.from('bank_soal').update({status:s}).in('id',ids);if(error)alert(error.message);bank()}
 async function bank(){
- const{data:b}=await sb.from('bank_soal').select('*').order('dibuat_pada',{ascending:false});const B=b||[];
+ const{data:b}=await sb.from('bank_soal').select('*').eq('fase',K.fase).order('dibuat_pada',{ascending:false});const B=b||[];
  const c=(j)=>B.filter(x=>x.jenis==j&&x.status=='disetujui').length,dr=B.filter(x=>x.status=='draf');
- $('#bd').innerHTML=`<div class=k><b>Soal disetujui</b><p>Literasi ${c('literasi')} · Numerasi ${c('numerasi')} · Penalaran ${c('penalaran')} · Draf menunggu tinjauan: ${dr.length}</p><small>Target awal: sekitar 30 per jenis.</small></div>
+ $('#bd').innerHTML=`<div class=k><b>Soal disetujui untuk Fase ${K.fase}</b><p>Literasi ${c('literasi')} · Numerasi ${c('numerasi')} · Penalaran ${c('penalaran')} · Draf menunggu tinjauan: ${dr.length}</p><small>Target awal: sekitar 30 per jenis.</small></div>
  <div class=k><b>1. Buat prompt</b><br><select id=bj><option>literasi<option>numerasi<option>penalaran</select> <select id=bt><option value=1>mudah<option value=2 selected>sedang<option value=3>menantang</select> <input id=bn type=number value=20 min=5 max=30 style="width:90px"><input id=bm placeholder="Tema (opsional)"><button class=b id=bp>📋 Salin prompt</button><small>Tempel ke Gemini, ChatGPT, atau Claude.</small></div>
  <div class=k><b>2. Tempel hasil AI (JSON)</b><textarea id=bh rows=6></textarea><button class=b id=bs>Periksa &amp; simpan sebagai draf</button></div>
  <div class=k><b>3. Tinjau draf</b> <small>(periksa kunci jawaban ✅, terutama numerasi)</small>${dr.length?'<button class="b g" id=ba>Setujui semua draf yang tampil</button>':'<p>Tidak ada draf.</p>'}${dr.slice(0,20).map(x=>`<div class=k><small>${x.jenis} · tingkat ${x.tingkat}</small>${x.bacaan?`<p><i>${esc(x.bacaan)}</i></p>`:''}<p><b>${esc(x.pertanyaan)}</b></p>${x.opsi.map((o,i)=>`<div>${i==x.kunci?'✅':'▫️'} ${esc(o)}</div>`).join('')}<small>${esc(x.penjelasan||'')}</small><br><button class="b s" data-a="${x.id}">Setujui</button><button class="b s g" data-d="${x.id}">Buang</button></div>`).join('')}</div>`;
@@ -192,7 +197,7 @@ async function bank(){
   try{a=JSON.parse($('#bh').value.replace(/^```(json)?|```$/gm,'').trim())}catch(e){return alert('JSON tidak terbaca. Minta AI mengulang dengan JSON saja.')}
   if(!Array.isArray(a))return alert('Harus berupa array JSON.');
   const j=$('#bj').value,t=+$('#bt').value,ok=[];
-  a.forEach(x=>{if(x&&x.pertanyaan&&Array.isArray(x.opsi)&&x.opsi.length==4&&new Set(x.opsi).size==4&&Number.isInteger(x.kunci)&&x.kunci>=0&&x.kunci<4)ok.push({jenis:j,tingkat:t,tema:x.tema||null,bacaan:x.bacaan||null,pertanyaan:String(x.pertanyaan),opsi:x.opsi.map(String),kunci:x.kunci,penjelasan:x.penjelasan||null})});
+  a.forEach(x=>{if(x&&x.pertanyaan&&Array.isArray(x.opsi)&&x.opsi.length==4&&new Set(x.opsi).size==4&&Number.isInteger(x.kunci)&&x.kunci>=0&&x.kunci<4)ok.push({fase:K.fase,jenis:j,tingkat:t,tema:x.tema||null,bacaan:x.bacaan||null,pertanyaan:String(x.pertanyaan),opsi:x.opsi.map(String),kunci:x.kunci,penjelasan:x.penjelasan||null})});
   let n=0;for(const r of ok){const{error}=await sb.from('bank_soal').insert(r);if(!error)n++}
   alert(n+' dari '+a.length+' soal disimpan sebagai draf. Sisanya ditolak (format salah atau soal kembar).');bank()};
  const ba=$('#ba');if(ba)ba.onclick=()=>setS(dr.slice(0,20).map(x=>x.id),'disetujui');
@@ -270,7 +275,7 @@ let W={id:null,isi:{}},F={};
 function konteks(f){const k=PK,c=(x,l)=>x.filter(h=>h.level==l).length;
  const g=G?G.gr.map((x,i)=>`- Kelompok ${NM[i]}: ${x.length} siswa (${c(x,'mahir')} mahir, ${c(x,'cakap')} cakap, ${c(x,'berkembang')} berkembang)${x.some(h=>h.khusus)?'; ada siswa yang butuh pendampingan khusus':''}${x.some(h=>h.murung)?'; ada siswa yang suasana hatinya sedang kurang baik':''}`).join('\n'):'';
  return `KONTEKS
-- Mata pelajaran: ${f.mapel}; Kelas 6 SD (Fase C); alokasi waktu: ${f.waktu}
+- Mata pelajaran: ${f.mapel}; Kelas ${K.tingkat} SD (Fase ${K.fase}); alokasi waktu: ${f.waktu}
 - Tujuan Pembelajaran (TP): ${f.tp}
 - Materi: ${f.materi}
 - Model pembelajaran: ${f.model}; jenis kelompok: ${f.jenis}
@@ -287,7 +292,7 @@ const A2=`- Bagian 7: Pembuka (aktivitas berkesadaran sesuai saran sistem); Inti
 - Bagian 9 Lampiran: LKPD lengkap per kelompok (isi soal dan petunjuknya, bukan sekadar judul), bahan bacaan atau penjelasan materi untuk guru, dan rubrik penilaian.
 - Bagian 10: pertanyaan refleksi untuk guru dan untuk siswa.`;
 function promptModul(f,b){const sec=b==1?[1,2,3,4,5,6,8]:[7,9,10];
- return `Kamu adalah perancang pembelajaran SD berpengalaman di Indonesia. Susun MODUL AJAR yang rinci dan siap dipakai guru kelas 6, mengikuti Kurikulum Merdeka dan pendekatan Pembelajaran Mendalam (3 prinsip: berkesadaran, bermakna, menggembirakan; 3 pengalaman belajar: memahami, mengaplikasi, merefleksi).
+ return `Kamu adalah perancang pembelajaran SD berpengalaman di Indonesia. Susun MODUL AJAR yang rinci dan siap dipakai guru kelas ${K.tingkat}, mengikuti Kurikulum Merdeka dan pendekatan Pembelajaran Mendalam (3 prinsip: berkesadaran, bermakna, menggembirakan; 3 pengalaman belajar: memahami, mengaplikasi, merefleksi).
 
 ${konteks(f)}
 
@@ -303,8 +308,8 @@ ${b==1?A1:A2}
 function md2h(t){let h='',ul=0,tb=[];const inl=s=>esc(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');
  const fl=()=>{if(ul){h+='</ul>';ul=0}if(tb.length){h+='<table>'+tb.map((r,i)=>'<tr>'+r.map(c=>`<t${i?'d':'h'}>${inl(c)}</t${i?'d':'h'}>`).join('')+'</tr>').join('')+'</table>';tb=[]}};
  t.split('\n').forEach(l=>{
-  if(/^\s*[-*]\s+/.test(l)){if(tb.length)fl();if(!ul){h+='<ul>';ul=1}h+='<li>'+inl(l.replace(/^\s*[-*]\s+/,''))+'</li>';return}
-  if(/^\s*\|/.test(l)){if(ul)fl();if(!/^[\s|:-]+$/.test(l))tb.push(l.trim().replace(/^\||\|$/g,'').split('|').map(x=>x.trim()));return}
+  if(/^\s*[-*•·–]\s+/.test(l)){if(tb.length)fl();if(!ul){h+='<ul>';ul=1}h+='<li>'+inl(l.replace(/^\s*[-*•·–]\s+/,''))+'</li>';return}
+  if(/^\s*\|/.test(l)||l.includes('\t')){if(ul)fl();if(!/^[\s|:-]+$/.test(l))tb.push(l.includes('\t')&&!/^\s*\|/.test(l)?l.split('\t').map(x=>x.trim()):l.trim().replace(/^\||\|$/g,'').split('|').map(x=>x.trim()));return}
   fl();const m=l.match(/^(#{1,4})\s+(.*)/);
   if(m)h+=`<h${m[1].length}>${inl(m[2])}</h${m[1].length}>`;else if(l.trim())h+='<p>'+inl(l)+'</p>'});
  fl();return h}
@@ -325,9 +330,9 @@ async function mod(){
  <p>${HD.map((h,i)=>`${ada[i]?'✅':'⬜'} ${i+1}. ${h}`).join('<br>')}</p>${ada.some(x=>x)?'<button class="b g" id=dw>⬇ Unduh Word</button><button class="b g" id=dp>🖨 Cetak / simpan PDF</button><details><summary>Pratinjau</summary>'+md2h(mdModul())+'</details>':''}</div>
  ${L&&L.length?'<div class=k><b>Modul tersimpan</b>'+L.map(m=>`<div>${esc(m.mapel)} - ${esc(m.materi)} <button class="b s g" data-m="${m.id}">Buka</button></div>`).join('')+'</div>':''}`;
  $('#p1').onclick=()=>salin(1);$('#p2').onclick=()=>salin(2);
- $('#mh').onclick=async()=>{getF();const p=$('#mt').value.split(/^##\s*(\d+)\.\s*.*$/m);let n=0;
-  for(let i=1;i<p.length;i+=2){const k=+p[i];if(k>=1&&k<=10&&p[i+1].trim()){W.isi[k]=p[i+1].trim();n++}}
-  if(!n)return alert('Judul "## 1. ..." tidak ditemukan. Pastikan hasil AI memakai judul bernomor.');
+ $('#mh').onclick=async()=>{getF();const p=parseModul($('#mt').value);let n=0;
+  for(const k in p){W.isi[k]=p[k];n++}
+  if(!n)return alert('Judul bagian (contoh "1. Identitas") tidak ditemukan. Pastikan yang ditempel adalah hasil dari prompt ini.');
   const full=HD.every((h,i)=>W.isi[i+1]),row={kelas_id:K.id,sesi_id:SS?SS.id:null,mapel:F.mapel,materi:F.materi,alokasi_waktu:F.waktu,model:F.model,jenis_kelompok:F.jenis,isi:{...W.isi,_tp:F.tp},status:full?'tersimpan':'draf'};
   const r=W.id?await sb.from('modul').update(row).eq('id',W.id):await sb.from('modul').insert(row).select().single();
   if(r.error)return alert(r.error.message);if(!W.id)W.id=r.data.id;
@@ -338,5 +343,21 @@ async function mod(){
   const{_tp,...isi}=m.isi||{};W={id:m.id,isi};F={mapel:m.mapel,tp:_tp||'',materi:m.materi,waktu:m.alokasi_waktu||'',model:m.model||'',jenis:m.jenis_kelompok||'heterogen'};mod()});
 }
 
+/* ===== tambahan: kelas baru, suara, parser modul ===== */
+const KY=['identitas','tujuan pembelajaran','dimensi profil','pemahaman bermakna','profil kelas','kemitraan','kegiatan pembelajaran','asesmen','lampiran','refleksi'];
+function parseModul(t){const o={};let cur=0;
+ t.split('\n').forEach(l=>{const m=l.match(/^[\s#>*_|-]*(?:bagian\s*)?(\d{1,2})\s*[.):\-]\s*[*_\s]*(.*)$/i);
+  if(m){const k=+m[1];if(k>=1&&k<=10&&m[2].replace(/[*_]/g,'').trim().toLowerCase().startsWith(KY[k-1])){cur=k;o[k]='';return}}
+  if(cur)o[cur]+=l+'\n'});
+ Object.keys(o).forEach(k=>{o[k]=o[k].trim();if(!o[k])delete o[k]});return o}
+function bicara(t){if(!window.speechSynthesis)return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='id-ID';speechSynthesis.speak(u)}
+async function kelasBaru(){
+ const t=+prompt('Kelas berapa? (1-6)');if(!(t>=1&&t<=6))return;
+ const h=(prompt('Nama rombel (boleh kosong, contoh: A)')||'').trim(),fase=t<=2?'A':t<=4?'B':'C';
+ const{data,error}=await sb.from('kelas').insert({nama:'Kelas '+t+(h?' '+h:''),tingkat:t,fase,tahun_ajaran:'2026/2027'}).select().single();
+ if(error)return alert(error.message);
+ if(fase=='A')await sb.from('pengaturan').update({jml_literasi:1,jml_numerasi:1,jml_penalaran:1}).eq('kelas_id',data.id);
+ KL.push(data);K=data;localStorage.setItem('kelasId',K.id);G=null;PK=null;W={id:null,isi:{}};F={};await muat();tab='s';ui();
+}
 (P.has('s')?masuk:guru)();
 </script></body></html>
