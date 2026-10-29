@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Misi Harian Kelas 6</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font:16px system-ui,sans-serif;background:#f4f6fb;color:#1e2a3a}
+.c{max-width:520px;margin:0 auto;padding:20px}.w{max-width:960px;margin:0 auto;padding:16px}
+h1{font-size:24px}input,textarea{width:100%;padding:12px;font:inherit;border:1px solid #c5cde0;border-radius:10px;margin:6px 0}
+.b{display:block;width:100%;padding:14px;margin:8px 0;border:0;border-radius:12px;background:#3b5bdb;color:#fff;font:inherit;font-weight:600;cursor:pointer}
+.b.g{background:#e7ebf7;color:#1e2a3a}.b.s{width:auto;display:inline-block;padding:6px 12px;margin:2px}
+.o{background:#fff;border:2px solid #dbe1f2;color:#1e2a3a;text-align:left;font-size:18px}.o.on{border-color:#3b5bdb;background:#edf1ff}
+.e{color:#c92a2a}.k{background:#fff;border-radius:12px;padding:14px;margin:10px 0;box-shadow:0 1px 3px #0002}
+table{width:100%;border-collapse:collapse}td,th{padding:6px;border-bottom:1px solid #e3e8f5;text-align:left}
+.big{font-size:44px;letter-spacing:6px;font-weight:800;text-align:center}
+.bar{height:8px;background:#dbe1f2;border-radius:4px}.bar i{display:block;height:100%;background:#3b5bdb;border-radius:4px}
+nav{display:flex;gap:6px}nav .b{margin:0}video{width:100%;border-radius:12px}#kartu{display:none}
+@media print{body{background:#fff}#app{display:none}#kartu{display:grid;grid-template-columns:repeat(3,1fr)}
+.kt{border:1px dashed #888;padding:10px;text-align:center;break-inside:avoid;height:6.5cm}.kt svg{width:3.3cm;height:3.3cm}}
+</style></head><body>
+<div id="app"></div><div id="kartu"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.50.0/dist/umd/supabase.js"></script>
+<script>
+const sb=supabase.createClient('https://mxfrivytnjseizoyahls.supabase.co','sb_publishable_ymPmz2rktzI2-mK1dvwieQ_2pSgb_gm');
+const $=s=>document.querySelector(s),app=$('#app');
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const P=new URLSearchParams(location.search);
+const E=['😢','🙁','😐','🙂','😄'],M=E.map((e,i)=>[i+1,e]);
+
+/* ================= SISWA ================= */
+const Q=[
+{k:'perasaan_berangkat',t:'Waktu berangkat dari rumah tadi, perasaanmu bagaimana?',o:M},
+{k:'perasaan_sekarang',t:'Sekarang di sekolah, perasaanmu bagaimana?',o:M},
+{k:'alasan',t:'Mau cerita sedikit? (boleh langsung lanjut)',multi:1,
+ if:a=>a.perasaan_berangkat<=2||a.perasaan_sekarang<=2,
+ o:[['kurang_tidur','😴 Kurang tidur'],['belum_sarapan','🍽️ Belum sarapan'],['sedang_sakit','🤒 Sedang sakit'],['masalah_di_rumah','🏠 Ada masalah di rumah'],['terburu_buru','🏃 Terburu-buru'],['tidak_ingin_bilang','🤐 Tidak ingin bilang'],['ingin_bicara','💬 Aku ingin bicara dengan guru']]},
+{k:'sarapan',t:'Tadi pagi sudah sarapan?',o:[['sudah','🍚 Sudah'],['sedikit','🥣 Sedikit'],['belum','🙈 Belum']]},
+{k:'tidur',t:'Tidurmu semalam?',o:[['cukup','😊 Cukup'],['agak_kurang','😐 Agak kurang'],['sangat_kurang','😴 Sangat kurang']]},
+{k:'badan',t:'Badanmu hari ini?',o:[['segar','💪 Segar'],['agak_lelah','😮‍💨 Agak lelah'],['kurang_enak','🤒 Kurang enak badan']]},
+{k:'semangat',t:'Seberapa penuh baterai semangatmu hari ini?',o:[[1,'🪫 1 - hampir habis'],[2,'🔋 2'],[3,'🔋 3'],[4,'🔋 4'],[5,'⚡ 5 - penuh!']]},
+{k:'gaya_belajar',t:'Hari ini aku ingin belajar dengan…',o:[['bermain','🎮 Bermain'],['menggambar','🎨 Menggambar'],['bergerak','🏃 Bergerak'],['mendengar_cerita','🎧 Mendengar cerita'],['berdiskusi','💬 Berdiskusi'],['mencoba_langsung','🔧 Mencoba langsung']]},
+{k:'preferensi_kerja',t:'Aku lebih nyaman bekerja…',o:[['sendiri','🧍 Sendiri'],['berpasangan','👫 Berpasangan'],['kelompok','👥 Kelompok']]},
+{k:'tema_favorit',t:'Pilih sampai 3 tema favoritmu',multi:1,max:3,o:[['olahraga','⚽ Olahraga'],['game','🎮 Game'],['musik','🎵 Musik'],['hewan','🐾 Hewan'],['teknologi','💻 Teknologi'],['alam','🌳 Alam'],['seni','🎨 Seni'],['memasak','🍳 Memasak']]},
+{k:'kebutuhan_hari_ini',t:'Kalau boleh memilih, hari ini aku paling ingin…',o:[['ditantang','🚀 Ditantang'],['dibantu','🤝 Dibantu pelan-pelan'],['bermain','🎲 Bermain sambil belajar'],['bersama_teman','👭 Bekerja bersama teman']]}
+];
+const MSG={sesi_tidak_ditemukan:'Kode sesi tidak ditemukan atau sesi sudah ditutup.',kartu_tidak_dikenal:'Kartu tidak dikenal. Coba ketik kode pendek di kartu.',terlalu_banyak_percobaan:'Terlalu banyak percobaan. Tunggu beberapa menit.'};
+let S={};
+async function R(n,a){const{data,error}=await sb.rpc(n,a);if(error)throw error;return data}
+function galat(f){app.innerHTML='<div class=c><h2>Sinyal bermasalah 📶</h2><button class=b id=rt>Coba lagi</button></div>';$('#rt').onclick=f}
+
+function masuk(m){
+ app.innerHTML=`<div class=c><h1>🚀 Misi Harian</h1>${m?`<p class=e>${m}</p>`:''}<input id=ks placeholder="Kode sesi" maxlength=6 value="${esc(P.get('s')||'')}"><input id=kk placeholder="Kode kartu / isi QR" maxlength=40><button class=b id=go>Mulai</button><button class="b g" id=sc>📷 Pindai QR kartu</button><video id=v hidden playsinline></video></div>`;
+ $('#go').onclick=async()=>{try{
+  const d=await R('siswa_masuk',{p_kode_sesi:$('#ks').value,p_kode_kartu:$('#kk').value});
+  if(d.status=='sudah_selesai')return selesai(d.nama_panggilan,1);
+  if(d.status!='ok')return masuk(MSG[d.status]||'Coba lagi.');
+  S={tok:d.token,nama:d.nama_panggilan,a:{},i:0};d.langkah=='misi'?misi():cek();
+ }catch(e){masuk('Sinyal bermasalah, coba lagi.')}};
+ $('#sc').onclick=async()=>{
+  if(!('BarcodeDetector' in window))return alert('Pemindai tidak didukung di perangkat ini. Ketik kode pendek di bawah QR pada kartu.');
+  try{const st=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}),v=$('#v');
+   v.hidden=false;v.srcObject=st;await v.play();const d=new BarcodeDetector({formats:['qr_code']});
+   const t=setInterval(async()=>{const r=await d.detect(v).catch(()=>[]);
+    if(r[0]){clearInterval(t);st.getTracks().forEach(x=>x.stop());$('#kk').value=r[0].rawValue;$('#go').click()}},400);
+  }catch(e){alert('Kamera tidak bisa dibuka.')}};
+}
+function cek(){
+ while(S.i<Q.length&&Q[S.i].if&&!Q[S.i].if(S.a))S.i++;
+ if(S.i>=Q.length)return kirimCek();
+ const q=Q[S.i];S.sel=[];
+ app.innerHTML=`<div class=c><div class=bar><i style="width:${S.i/Q.length*100}%"></i></div><h1>Hai ${esc(S.nama)}! 👋</h1><h2>${q.t}</h2>${q.o.map((o,j)=>`<button class="b o" data-j="${j}">${o[1]}</button>`).join('')}${q.multi?'<button class=b id=nx>Lanjut ➜</button>':''}</div>`;
+ app.querySelectorAll('.o').forEach(b=>b.onclick=()=>{
+  const v=q.o[b.dataset.j][0];
+  if(!q.multi){S.a[q.k]=v;S.i++;return cek()}
+  const x=S.sel.indexOf(v);
+  if(x<0){if(S.sel.length<(q.max||9))S.sel.push(v)}else S.sel.splice(x,1);
+  b.classList.toggle('on',S.sel.includes(v));
+ });
+ if(q.multi)$('#nx').onclick=()=>{S.a[q.k]=S.sel;S.i++;cek()};
+}
+async function kirimCek(){
+ app.innerHTML='<div class=c><h2>Menyimpan…</h2></div>';
+ const a={...S.a},al=a.alasan||[];a.ingin_bicara=al.includes('ingin_bicara');a.alasan=al.filter(x=>x!='ingin_bicara');
+ try{await R('simpan_cek_diri',{p_token:S.tok,p_data:a});misi()}catch(e){galat(kirimCek)}
+}
+async function misi(){
+ try{const d=await R('ambil_misi',{p_token:S.tok});S.m=d.soal;S.n=0;S.j=[];
+  if(!S.m.length){await R('kirim_misi',{p_token:S.tok,p_jawaban:[]});return selesai(S.nama)}
+  soal();
+ }catch(e){galat(misi)}
+}
+function soal(){
+ const q=S.m[S.n],o=[0,1,2,3].sort(()=>Math.random()-.5);
+ app.innerHTML=`<div class=c><div class=bar><i style="width:${S.n/S.m.length*100}%"></i></div><h2>🎯 Misi ${S.n+1}/${S.m.length}</h2>${q.bacaan?`<div class=k>${esc(q.bacaan)}</div>`:''}<h3>${esc(q.pertanyaan)}</h3>${o.map(i=>`<button class="b o" data-i="${i}">${esc(q.opsi[i])}</button>`).join('')}</div>`;
+ app.querySelectorAll('.o').forEach(b=>b.onclick=()=>{S.j.push({soal_id:q.id,pilihan:+b.dataset.i});S.n++;S.n<S.m.length?soal():kirimM()});
+}
+async function kirimM(){
+ app.innerHTML='<div class=c><h2>Mengirim…</h2></div>';
+ try{await R('kirim_misi',{p_token:S.tok,p_jawaban:S.j});selesai(S.nama)}catch(e){galat(kirimM)}
+}
+function selesai(n,sudah){
+ app.innerHTML=`<div class=c><h1>🎉 Misi selesai!</h1><p>${sudah?'Kamu sudah mengisi hari ini, ':'Terima kasih, '}${esc(n)}!</p></div>`;
+ setTimeout(()=>masuk(),5000);
+}
+
+/* ================= GURU ================= */
+let K,SW=[],SS=null,tab='d',tm;
+async function guru(){
+ const{data:{session}}=await sb.auth.getSession();
+ if(!session)return login();
+ const{data:k}=await sb.from('kelas').select('*').limit(1);
+ if(!k||!k.length){await sb.auth.signOut();return login('Akun ini belum terdaftar sebagai guru.')}
+ K=k[0];await muat();ui();
+}
+function login(m){
+ app.innerHTML=`<div class=c><h1>Masuk Guru</h1>${m?`<p class=e>${esc(m)}</p>`:''}<input id=em type=email placeholder=Email><input id=pw type=password placeholder="Kata sandi"><button class=b id=go>Masuk</button></div>`;
+ $('#go').onclick=async()=>{const{error}=await sb.auth.signInWithPassword({email:$('#em').value.trim(),password:$('#pw').value});error?login('Email atau kata sandi salah.'):guru()};
+}
+async function muat(){
+ const{data:s}=await sb.from('siswa').select('*').eq('kelas_id',K.id).order('no_absen');SW=s||[];
+ const hr=new Date().toLocaleDateString('sv',{timeZone:'Asia/Jakarta'});
+ const{data:z}=await sb.from('sesi_harian').select('*').eq('kelas_id',K.id).eq('tanggal',hr);SS=z&&z[0]||null;
+ if(SS){const[a,b]=await Promise.all([sb.from('sesi_siswa').select('*').eq('sesi_id',SS.id),sb.from('cek_diri').select('*').eq('sesi_id',SS.id)]);
+  SS.ss=Object.fromEntries((a.data||[]).map(x=>[x.siswa_id,x]));SS.cd=Object.fromEntries((b.data||[]).map(x=>[x.siswa_id,x]));}
+}
+function ui(){
+ clearInterval(tm);
+ app.innerHTML=`<div class=w><nav><button class="b s ${tab=='d'?'':'g'}" id=t1>Dasbor</button><button class="b s ${tab=='s'?'':'g'}" id=t2>Siswa &amp; Kartu</button><button class="b s g" id=t3>Keluar</button></nav><div id=bd></div></div>`;
+ $('#t1').onclick=()=>{tab='d';ui()};$('#t2').onclick=()=>{tab='s';ui()};
+ $('#t3').onclick=async()=>{await sb.auth.signOut();login()};
+ tab=='d'?dasbor():siswaTab();
+ if(tab=='d'&&SS&&SS.status=='buka')tm=setInterval(async()=>{await muat();dasbor()},5000);
+}
+async function mulai(){const{error}=await sb.rpc('buat_sesi',{p_kelas_id:K.id});if(error)return alert(error.message);await muat();ui()}
+function tanda(c){if(!c)return'';const t=[];
+ if(c.ingin_bicara)t.push('💬');if(c.sarapan=='belum')t.push('🍽️');if(c.tidur=='sangat_kurang')t.push('😴');
+ if(c.badan=='kurang_enak')t.push('🤒');if(c.perasaan_berangkat<=2||c.perasaan_sekarang<=2)t.push('☁️');if(c.semangat<=2)t.push('🪫');
+ return t.join(' ')}
+function dasbor(){
+ const bd=$('#bd');
+ if(!SS){bd.innerHTML='<div class=k><p>Belum ada sesi hari ini.</p><button class=b id=ms>▶ Mulai sesi hari ini</button></div>';$('#ms').onclick=mulai;return}
+ const ln=location.origin+'/?s='+SS.kode_sesi,sd=SW.filter(s=>SS.ss[s.id]&&SS.ss[s.id].misi_selesai).length;
+ bd.innerHTML=`<div class=k><p>Kode sesi (${SS.status})</p><div class=big>${SS.kode_sesi}</div><p>Tautan siswa: <b>${ln}</b></p><p><b>${sd}</b> dari ${SW.length} siswa selesai</p>${SS.status=='buka'?'<button class=b id=ts>⏹ Tutup sesi &amp; hitung profil</button>':'<button class="b g" id=ms>▶ Buka lagi</button>'}</div>
+ <div class=k><table><tr><th>Siswa<th>Status<th>Perasaan<th>Penanda<th></tr>${SW.map(s=>{const t=SS.ss[s.id],c=SS.cd[s.id];
+ return `<tr><td>${esc(s.nama)}<td>${!t?'—':t.misi_selesai?'✅ selesai':t.cek_diri_selesai?'⏳ misi':'✏️ cek diri'}<td>${c?E[c.perasaan_berangkat-1]+' ➜ '+E[c.perasaan_sekarang-1]:''}<td>${tanda(c)}<td>${t?`<button class="b s g" data-r="${s.id}" title="Buka ulang isian">↺</button>`:''}</tr>`}).join('')}</table>
+ <small>💬 ingin bicara · 🍽️ belum sarapan · 😴 tidur kurang · 🤒 badan kurang enak · ☁️ murung · 🪫 semangat rendah (hanya terlihat oleh guru)</small></div>`;
+ const ms=$('#ms'),ts=$('#ts');
+ if(ms)ms.onclick=mulai;
+ if(ts)ts.onclick=async()=>{const{data,error}=await sb.rpc('tutup_sesi',{p_sesi_id:SS.id});if(error)return alert(error.message);alert('Sesi ditutup. Profil harian dihitung untuk '+data+' siswa.');await muat();ui()};
+ bd.querySelectorAll('[data-r]').forEach(b=>b.onclick=async()=>{if(confirm('Buka ulang isian siswa ini?')){await sb.rpc('reset_isian',{p_sesi_id:SS.id,p_siswa_id:b.dataset.r});await muat();dasbor()}});
+}
+function siswaTab(){
+ $('#bd').innerHTML=`<div class=k><b>Tambah siswa</b> (satu nama per baris)<textarea id=nm rows=5></textarea><button class=b id=ad>Tambahkan</button></div><div class=k><button class=b id=pr>🖨 Cetak kartu semua siswa</button><table><tr><th>No<th>Nama<th>Kode kartu</tr>${SW.map(s=>`<tr><td>${s.no_absen??''}<td>${esc(s.nama)}<td><b>${s.kode_kartu}</b></tr>`).join('')}</table></div>`;
+ $('#ad').onclick=async()=>{
+  const n=$('#nm').value.split('\n').map(x=>x.trim()).filter(Boolean);if(!n.length)return;
+  const a=Math.max(0,...SW.map(s=>s.no_absen||0));
+  const{error}=await sb.from('siswa').insert(n.map((x,i)=>({kelas_id:K.id,nama:x,no_absen:a+i+1})));
+  if(error)return alert(error.message);await muat();ui();};
+ $('#pr').onclick=()=>{
+  $('#kartu').innerHTML=SW.filter(s=>s.aktif).map(s=>{const q=qrcode(0,'M');q.addData(s.token_qr);q.make();
+   return `<div class=kt><b>${esc(s.nama)}</b>${q.createSvgTag(4,0)}<div style="font:700 22px monospace;letter-spacing:3px">${s.kode_kartu}</div></div>`}).join('');
+  print();};
+}
+
+(P.has('s')?masuk:guru)();
+</script></body></html>
