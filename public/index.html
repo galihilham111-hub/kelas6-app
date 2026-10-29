@@ -125,10 +125,10 @@ async function muat(){
 }
 function ui(){
  clearInterval(tm);
- app.innerHTML=`<div class=w><nav><button class="b s ${tab=='d'?'':'g'}" id=t1>Dasbor</button><button class="b s ${tab=='s'?'':'g'}" id=t2>Siswa &amp; Kartu</button><button class="b s ${tab=='k'?'':'g'}" id=t5>Kelompok &amp; Model</button><button class="b s ${tab=='b'?'':'g'}" id=t4>Bank Soal</button><button class="b s g" id=t3>Keluar</button></nav><div id=bd></div></div>`;
- $('#t1').onclick=()=>{tab='d';ui()};$('#t4').onclick=()=>{tab='b';ui()};$('#t5').onclick=()=>{tab='k';ui()};$('#t2').onclick=()=>{tab='s';ui()};
+ app.innerHTML=`<div class=w><nav><button class="b s ${tab=='d'?'':'g'}" id=t1>Dasbor</button><button class="b s ${tab=='s'?'':'g'}" id=t2>Siswa &amp; Kartu</button><button class="b s ${tab=='k'?'':'g'}" id=t5>Kelompok &amp; Model</button><button class="b s ${tab=='m'?'':'g'}" id=t6>Modul Ajar</button><button class="b s ${tab=='b'?'':'g'}" id=t4>Bank Soal</button><button class="b s g" id=t3>Keluar</button></nav><div id=bd></div></div>`;
+ $('#t1').onclick=()=>{tab='d';ui()};$('#t4').onclick=()=>{tab='b';ui()};$('#t5').onclick=()=>{tab='k';ui()};$('#t6').onclick=()=>{tab='m';ui()};$('#t2').onclick=()=>{tab='s';ui()};
  $('#t3').onclick=async()=>{await sb.auth.signOut();login()};
- tab=='d'?dasbor():tab=='s'?siswaTab():tab=='k'?kel():bank();
+ tab=='d'?dasbor():tab=='s'?siswaTab():tab=='k'?kel():tab=='m'?mod():bank();
  if(tab=='d'&&SS&&SS.status=='buka')tm=setInterval(async()=>{await muat();dasbor()},5000);
 }
 async function mulai(){const{error}=await sb.rpc('buat_sesi',{p_kelas_id:K.id});if(error)return alert(error.message);await muat();ui()}
@@ -261,6 +261,81 @@ async function kel(){
  <button class=b id=sk>🎲 Susun kelompok</button></div><div id=gk></div>`;
  bd.querySelectorAll('[name=md]').forEach(e=>e.onchange=()=>{const r=R[+e.value];PK.model=r.nama;PK.jenis=r.j;bd.querySelector(`[name=jn][value=${r.j}]`).checked=true});
  $('#sk').onclick=()=>{const j=bd.querySelector('[name=jn]:checked').value;PK.jenis=j;G={jenis:j,gr:susun(H,j)};gambarKel()};
+}
+
+/* ================= MODUL AJAR ================= */
+const HD=['Identitas','Tujuan Pembelajaran','Dimensi Profil Lulusan','Pemahaman Bermakna dan Pertanyaan Pemantik','Profil Kelas dan Strategi Diferensiasi','Kemitraan, Lingkungan Belajar, dan Pemanfaatan Digital','Kegiatan Pembelajaran','Asesmen','Lampiran','Refleksi Guru dan Siswa'];
+const MP=['Pendidikan Agama dan Budi Pekerti','Pendidikan Pancasila','Bahasa Indonesia','Matematika','IPAS','Seni dan Budaya','PJOK','Bahasa Inggris','Muatan Lokal'];
+let W={id:null,isi:{}},F={};
+function konteks(f){const k=PK,c=(x,l)=>x.filter(h=>h.level==l).length;
+ const g=G?G.gr.map((x,i)=>`- Kelompok ${NM[i]}: ${x.length} siswa (${c(x,'mahir')} mahir, ${c(x,'cakap')} cakap, ${c(x,'berkembang')} berkembang)${x.some(h=>h.khusus)?'; ada siswa yang butuh pendampingan khusus':''}${x.some(h=>h.murung)?'; ada siswa yang suasana hatinya sedang kurang baik':''}`).join('\n'):'';
+ return `KONTEKS
+- Mata pelajaran: ${f.mapel}; Kelas 6 SD (Fase C); alokasi waktu: ${f.waktu}
+- Tujuan Pembelajaran (TP): ${f.tp}
+- Materi: ${f.materi}
+- Model pembelajaran: ${f.model}; jenis kelompok: ${f.jenis}
+- Profil kelas (${k.n} siswa, tanpa nama): berkembang ${k.lv.berkembang}%, cakap ${k.lv.cakap}%, mahir ${k.lv.mahir}%; semangat rata-rata ${k.semangat}/5; ${k.murung}% suasana hati kurang baik; ${k.belumSarapan}% belum sarapan; gaya belajar terbanyak: ${k.gaya.join(', ').replace(/_/g,' ')}; tema favorit: ${k.tema.join(', ')}
+- Saran pembuka dari sistem: ${k.buka}
+${g?'- Susunan kelompok:\n'+g:'- Susunan kelompok belum ditentukan; rancang diferensiasi untuk tiga level (berkembang, cakap, mahir).'}`}
+const A1=`- Bagian 2 Tujuan Pembelajaran: tulis TP, lalu 3-4 indikator ketercapaian terukur bernomor ("Indikator 1: ...", dst.).
+- Bagian 3: pilih 2-3 dari 8 dimensi Profil Lulusan (keimanan dan ketakwaan, kewargaan, penalaran kritis, kreativitas, kolaborasi, kemandirian, kesehatan, komunikasi) dan jelaskan cara menguatkannya.
+- Bagian 4: pemahaman bermakna dan 3 pertanyaan pemantik.
+- Bagian 5: diferensiasi konten, proses, dan produk untuk TIAP kelompok sesuai susunan di atas, termasuk dukungan bagi siswa yang butuh pendampingan.
+- Bagian 6: kemitraan, lingkungan belajar, dan pemanfaatan digital yang realistis untuk SD.
+- Bagian 8: asesmen diagnostik (merujuk data Cek Diri dan Misi harian), asesmen formatif (teknik dan instrumen), asesmen sumatif bila ada, dan rubrik singkat per indikator.`;
+const A2=`- Bagian 7: Pembuka (aktivitas berkesadaran sesuai saran sistem); Inti dengan tiga pengalaman belajar berurutan: Memahami, Mengaplikasi, Merefleksi; Penutup. Setiap langkah memuat alokasi menit (total sesuai alokasi waktu), kegiatan tiap kelompok, dan peran guru.
+- Bagian 9 Lampiran: LKPD lengkap per kelompok (isi soal dan petunjuknya, bukan sekadar judul), bahan bacaan atau penjelasan materi untuk guru, dan rubrik penilaian.
+- Bagian 10: pertanyaan refleksi untuk guru dan untuk siswa.`;
+function promptModul(f,b){const sec=b==1?[1,2,3,4,5,6,8]:[7,9,10];
+ return `Kamu adalah perancang pembelajaran SD berpengalaman di Indonesia. Susun MODUL AJAR yang rinci dan siap dipakai guru kelas 6, mengikuti Kurikulum Merdeka dan pendekatan Pembelajaran Mendalam (3 prinsip: berkesadaran, bermakna, menggembirakan; 3 pengalaman belajar: memahami, mengaplikasi, merefleksi).
+
+${konteks(f)}
+
+TUGAS (Bagian ${b} dari 2): tulis HANYA bagian bernomor berikut, dengan judul persis seperti ini:
+${sec.map(n=>'## '+n+'. '+HD[n-1]).join('\n')}
+
+ATURAN:
+- Pakai judul "## nomor. nama" persis seperti di atas, tanpa judul lain di level yang sama.
+- Bahasa Indonesia sederhana untuk guru SD, konkret, siap dipraktikkan, jangan menulis nama siswa.
+- Tabel boleh dipakai bila membantu.
+${b==1?A1:A2}
+- Jika jawabanmu berhenti di tengah, aku akan mengetik "lanjutkan".`}
+function md2h(t){let h='',ul=0,tb=[];const inl=s=>esc(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');
+ const fl=()=>{if(ul){h+='</ul>';ul=0}if(tb.length){h+='<table>'+tb.map((r,i)=>'<tr>'+r.map(c=>`<t${i?'d':'h'}>${inl(c)}</t${i?'d':'h'}>`).join('')+'</tr>').join('')+'</table>';tb=[]}};
+ t.split('\n').forEach(l=>{
+  if(/^\s*[-*]\s+/.test(l)){if(tb.length)fl();if(!ul){h+='<ul>';ul=1}h+='<li>'+inl(l.replace(/^\s*[-*]\s+/,''))+'</li>';return}
+  if(/^\s*\|/.test(l)){if(ul)fl();if(!/^[\s|:-]+$/.test(l))tb.push(l.trim().replace(/^\||\|$/g,'').split('|').map(x=>x.trim()));return}
+  fl();const m=l.match(/^(#{1,4})\s+(.*)/);
+  if(m)h+=`<h${m[1].length}>${inl(m[2])}</h${m[1].length}>`;else if(l.trim())h+='<p>'+inl(l)+'</p>'});
+ fl();return h}
+function mdModul(){return HD.map((h,i)=>W.isi[i+1]?`## ${i+1}. ${h}\n\n${W.isi[i+1]}`:'').filter(Boolean).join('\n\n')}
+function htmlModul(){return `<html><head><meta charset="utf-8"><title>Modul Ajar</title><style>body{font-family:Calibri,Arial,sans-serif;line-height:1.4}table{border-collapse:collapse}td,th{border:1px solid #888;padding:4px}</style></head><body><h1>Modul Ajar ${esc(F.mapel)} - ${esc(F.materi)}</h1>${md2h(mdModul())}</body></html>`}
+function getF(){F={mapel:$('#fm').value,tp:$('#ft').value.trim(),materi:$('#fa').value.trim(),waktu:$('#fw').value.trim(),model:$('#fo').value.trim(),jenis:$('#fj').value};return F}
+function salin(b){getF();if(!F.tp||!F.materi)return alert('Isi TP dan materi dulu.');navigator.clipboard.writeText(promptModul(F,b)).then(()=>alert('Prompt Bagian '+b+' disalin. Tempel ke AI. Setelah selesai, salin hasilnya dan tempel di kotak bawah.'))}
+async function mod(){
+ if(!PK){$('#bd').innerHTML='<div class=k>Buka tab <b>Kelompok &amp; Model</b> dulu, pilih model, dan susun kelompok.</div>';return}
+ const{data:L}=await sb.from('modul').select('id,mapel,materi').eq('kelas_id',K.id).order('dibuat_pada',{ascending:false}).limit(8);
+ const f=F.mapel?F:{mapel:MP[0],tp:'',materi:'',waktu:'2 x 35 menit',model:PK.model,jenis:PK.jenis},ada=HD.map((h,i)=>W.isi[i+1]?1:0);
+ $('#bd').innerHTML=`<div class=k><b>1. Isi data pembelajaran</b><select id=fm>${MP.map(m=>`<option ${m==f.mapel?'selected':''}>${m}`).join('')}</select>
+ <textarea id=ft rows=3 placeholder="Tujuan Pembelajaran, contoh: Peserta didik mampu membandingkan dua pecahan dengan penyebut berbeda dan menjelaskan alasannya.">${esc(f.tp)}</textarea>
+ <input id=fa placeholder="Materi" value="${esc(f.materi)}"><input id=fw placeholder="Alokasi waktu" value="${esc(f.waktu)}"><input id=fo placeholder="Model pembelajaran" value="${esc(f.model)}">
+ <select id=fj>${['heterogen','homogen','campuran'].map(j=>`<option ${j==f.jenis?'selected':''}>${j}`).join('')}</select>
+ <button class=b id=p1>📋 Salin Prompt Bagian 1 (bagian 1-6 dan 8)</button><button class=b id=p2>📋 Salin Prompt Bagian 2 (bagian 7, 9, 10)</button></div>
+ <div class=k><b>2. Tempel hasil AI</b> (boleh Bagian 1 dan 2 bergantian)<textarea id=mt rows=6></textarea><button class=b id=mh>Tambahkan ke modul &amp; simpan</button>
+ <p>${HD.map((h,i)=>`${ada[i]?'✅':'⬜'} ${i+1}. ${h}`).join('<br>')}</p>${ada.some(x=>x)?'<button class="b g" id=dw>⬇ Unduh Word</button><button class="b g" id=dp>🖨 Cetak / simpan PDF</button><details><summary>Pratinjau</summary>'+md2h(mdModul())+'</details>':''}</div>
+ ${L&&L.length?'<div class=k><b>Modul tersimpan</b>'+L.map(m=>`<div>${esc(m.mapel)} - ${esc(m.materi)} <button class="b s g" data-m="${m.id}">Buka</button></div>`).join('')+'</div>':''}`;
+ $('#p1').onclick=()=>salin(1);$('#p2').onclick=()=>salin(2);
+ $('#mh').onclick=async()=>{getF();const p=$('#mt').value.split(/^##\s*(\d+)\.\s*.*$/m);let n=0;
+  for(let i=1;i<p.length;i+=2){const k=+p[i];if(k>=1&&k<=10&&p[i+1].trim()){W.isi[k]=p[i+1].trim();n++}}
+  if(!n)return alert('Judul "## 1. ..." tidak ditemukan. Pastikan hasil AI memakai judul bernomor.');
+  const full=HD.every((h,i)=>W.isi[i+1]),row={kelas_id:K.id,sesi_id:SS?SS.id:null,mapel:F.mapel,materi:F.materi,alokasi_waktu:F.waktu,model:F.model,jenis_kelompok:F.jenis,isi:{...W.isi,_tp:F.tp},status:full?'tersimpan':'draf'};
+  const r=W.id?await sb.from('modul').update(row).eq('id',W.id):await sb.from('modul').insert(row).select().single();
+  if(r.error)return alert(r.error.message);if(!W.id)W.id=r.data.id;
+  alert(full?'Modul lengkap dan tersimpan.':'Tersimpan. Bagian yang belum ada: '+HD.map((h,i)=>W.isi[i+1]?'':(i+1)).filter(Boolean).join(', '));mod()};
+ const dw=$('#dw');if(dw){dw.onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+htmlModul()],{type:'application/msword'}));a.download='Modul Ajar '+F.mapel+'.doc';a.click()};
+  $('#dp').onclick=()=>{const w=open('');w.document.write(htmlModul());w.document.close();w.print()}}
+ $('#bd').querySelectorAll('[data-m]').forEach(e=>e.onclick=async()=>{const{data:m}=await sb.from('modul').select('*').eq('id',e.dataset.m).single();
+  const{_tp,...isi}=m.isi||{};W={id:m.id,isi};F={mapel:m.mapel,tp:_tp||'',materi:m.materi,waktu:m.alokasi_waktu||'',model:m.model||'',jenis:m.jenis_kelompok||'heterogen'};mod()});
 }
 
 (P.has('s')?masuk:guru)();
