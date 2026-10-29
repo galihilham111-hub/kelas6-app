@@ -13,7 +13,7 @@ h1{font-size:24px}input,textarea{width:100%;padding:12px;font:inherit;border:1px
 table{width:100%;border-collapse:collapse}td,th{padding:6px;border-bottom:1px solid #e3e8f5;text-align:left}
 .big{font-size:44px;letter-spacing:6px;font-weight:800;text-align:center}
 .bar{height:8px;background:#dbe1f2;border-radius:4px}.bar i{display:block;height:100%;background:#3b5bdb;border-radius:4px}
-nav{display:flex;gap:6px}nav .b{margin:0}video{width:100%;border-radius:12px}select{padding:10px;font:inherit;margin:4px 0}#kartu{display:none}
+nav{display:flex;gap:6px;flex-wrap:wrap}nav .b{margin:0}video{width:100%;border-radius:12px}select{padding:10px;font:inherit;margin:4px 0}#kartu{display:none}
 @media print{body{background:#fff}#app{display:none}#kartu{display:grid;grid-template-columns:repeat(3,1fr)}
 .kt{border:1px dashed #888;padding:10px;text-align:center;break-inside:avoid;height:6.5cm}.kt svg{width:3.3cm;height:3.3cm}}
 </style></head><body>
@@ -125,10 +125,10 @@ async function muat(){
 }
 function ui(){
  clearInterval(tm);
- app.innerHTML=`<div class=w><nav><button class="b s ${tab=='d'?'':'g'}" id=t1>Dasbor</button><button class="b s ${tab=='s'?'':'g'}" id=t2>Siswa &amp; Kartu</button><button class="b s ${tab=='b'?'':'g'}" id=t4>Bank Soal</button><button class="b s g" id=t3>Keluar</button></nav><div id=bd></div></div>`;
- $('#t1').onclick=()=>{tab='d';ui()};$('#t4').onclick=()=>{tab='b';ui()};$('#t2').onclick=()=>{tab='s';ui()};
+ app.innerHTML=`<div class=w><nav><button class="b s ${tab=='d'?'':'g'}" id=t1>Dasbor</button><button class="b s ${tab=='s'?'':'g'}" id=t2>Siswa &amp; Kartu</button><button class="b s ${tab=='k'?'':'g'}" id=t5>Kelompok &amp; Model</button><button class="b s ${tab=='b'?'':'g'}" id=t4>Bank Soal</button><button class="b s g" id=t3>Keluar</button></nav><div id=bd></div></div>`;
+ $('#t1').onclick=()=>{tab='d';ui()};$('#t4').onclick=()=>{tab='b';ui()};$('#t5').onclick=()=>{tab='k';ui()};$('#t2').onclick=()=>{tab='s';ui()};
  $('#t3').onclick=async()=>{await sb.auth.signOut();login()};
- tab=='d'?dasbor():tab=='s'?siswaTab():bank();
+ tab=='d'?dasbor():tab=='s'?siswaTab():tab=='k'?kel():bank();
  if(tab=='d'&&SS&&SS.status=='buka')tm=setInterval(async()=>{await muat();dasbor()},5000);
 }
 async function mulai(){const{error}=await sb.rpc('buat_sesi',{p_kelas_id:K.id});if(error)return alert(error.message);await muat();ui()}
@@ -198,6 +198,69 @@ async function bank(){
  const ba=$('#ba');if(ba)ba.onclick=()=>setS(dr.slice(0,20).map(x=>x.id),'disetujui');
  $('#bd').querySelectorAll('[data-a]').forEach(e=>e.onclick=()=>setS([e.dataset.a],'disetujui'));
  $('#bd').querySelectorAll('[data-d]').forEach(e=>e.onclick=()=>setS([e.dataset.d],'dibuang'));
+}
+
+/* ================= KELOMPOK & MODEL ================= */
+const NM=['Elang','Harimau','Lumba-lumba','Rajawali','Singa','Kuda Laut','Macan Tutul','Gajah','Beruang','Kancil'];
+let G=null,PK=null,SHOW=false;
+function susun(H,jenis){
+ const g=Math.max(1,Math.round(H.length/5)),s=[...H].sort((a,b)=>b.skor-a.skor);
+ if(jenis=='homogen'){const k=Math.ceil(s.length/g);return Array.from({length:g},(_,i)=>s.slice(i*k,(i+1)*k)).filter(x=>x.length)}
+ const gr=Array.from({length:g},()=>[]);
+ s.forEach((h,i)=>{const r=Math.floor(i/g),p=i%g;gr[r%2?g-1-p:p].push(h)});
+ const M=H.reduce((t,h)=>t+h.skor,0)/H.length;
+ const cost=()=>gr.reduce((t,x)=>{if(!x.length)return t;const m=x.reduce((a,h)=>a+h.skor,0)/x.length;
+  return t+(m-M)**2+(x.some(h=>h.kol==3)?0:300)+150*Math.max(0,x.filter(h=>h.murung).length-1)+100*Math.max(0,x.filter(h=>h.khusus).length-1)},0);
+ let c=cost();
+ for(let t=0;t<4000&&g>1;t++){
+  const a=Math.floor(Math.random()*g),b=Math.floor(Math.random()*g);if(a==b)continue;
+  const i=Math.floor(Math.random()*gr[a].length),j=Math.floor(Math.random()*gr[b].length);
+  [gr[a][i],gr[b][j]]=[gr[b][j],gr[a][i]];const n=cost();
+  if(n<=c)c=n;else[gr[a][i],gr[b][j]]=[gr[b][j],gr[a][i]];}
+ return gr;
+}
+function gambarKel(){
+ if(!G)return;const rata=x=>Math.round(x.reduce((a,h)=>a+h.skor,0)/x.length);
+ $('#gk').innerHTML=`<label><input type=checkbox id=lv ${SHOW?'checked':''} style="width:auto"> Tampilkan level (jangan dicentang saat layar IFP dilihat siswa)</label>
+ <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">${G.gr.map((x,i)=>{const m=rata(x);
+ return `<div class=k><b>Kelompok ${NM[i]}</b>${SHOW&&G.jenis=='homogen'?`<br><small>${m<50?'lebih terbimbing, prioritas bantuan guru':m<80?'tugas standar':'tantangan pengayaan'}</small>`:''}${x.map(h=>`<div>${esc(h.nama)}${SHOW?` <small>(${h.level})</small>`:''}</div>`).join('')}</div>`}).join('')}</div>
+ <button class=b id=sv>💾 Simpan kelompok ini</button>`;
+ $('#lv').onchange=e=>{SHOW=e.target.checked;gambarKel()};
+ $('#sv').onclick=async()=>{await sb.from('kelompok').delete().eq('sesi_id',SS.id);
+  for(const[i,x]of G.gr.entries()){const{data}=await sb.from('kelompok').insert({sesi_id:SS.id,nama:NM[i],jenis:G.jenis}).select().single();
+   await sb.from('anggota_kelompok').insert(x.map(h=>({kelompok_id:data.id,siswa_id:h.id})))}
+  alert('Kelompok disimpan.')};
+}
+async function kel(){
+ const bd=$('#bd');bd.innerHTML='<div class=k>Menghitung profil kelas…</div>';
+ await muat();
+ if(!SS||!Object.keys(SS.cd).length){bd.innerHTML='<div class=k>Belum ada siswa yang mengisi sesi hari ini. Mulai sesi di Dasbor dulu.</div>';return}
+ await sb.rpc('hitung_profil',{p_sesi_id:SS.id});
+ const[a,b]=await Promise.all([sb.from('profil_harian').select('*').eq('sesi_id',SS.id),sb.from('catatan_guru').select('*')]);
+ const pf=Object.fromEntries((a.data||[]).map(x=>[x.siswa_id,x])),ct=Object.fromEntries((b.data||[]).map(x=>[x.siswa_id,x]));
+ const H=SW.filter(s=>SS.cd[s.id]).map(s=>{const c=SS.cd[s.id],p=pf[s.id]||{},g=ct[s.id]||{};
+  return{id:s.id,nama:s.nama,skor:p.skor_gabungan??50,level:p.level||'cakap',kol:g.kolaborasi||2,khusus:!!(g.kebutuhan_khusus&&g.kebutuhan_khusus.trim()),murung:c.perasaan_berangkat<=2||c.perasaan_sekarang<=2,c}});
+ const n=H.length,pct=f=>Math.round(100*H.filter(f).length/n),avg=f=>H.reduce((t,h)=>t+f(h),0)/n;
+ const M=avg(h=>h.skor),sd=Math.sqrt(avg(h=>(h.skor-M)**2)),gy=g=>pct(h=>h.c.gaya_belajar==g),kb=k=>pct(h=>h.c.kebutuhan_hari_ini==k);
+ const sem=avg(h=>h.c.semangat),lowE=sem<3||pct(h=>h.c.sarapan=='belum'||h.c.tidur=='sangat_kurang')>=30,kolT=pct(h=>h.kol==3);
+ const top=k=>{const m={};H.forEach(h=>[].concat(h.c[k]).forEach(v=>m[v]=(m[v]||0)+1));return Object.entries(m).sort((x,y)=>y[1]-x[1]).slice(0,3).map(e=>e[0])};
+ const md=(nama,sk,al,j)=>({nama,sk,al,j});
+ const R=[
+  md('TaRL (pengajaran sesuai level)',sd/9,`sebaran kemampuan lebar (simpangan ${Math.round(sd)})`,'homogen'),
+  md('Pembelajaran terbimbing (demonstrasi lalu praktik)',kb('dibantu')/15+(lowE?2:0),`${kb('dibantu')}% ingin dibantu pelan-pelan${lowE?', energi kelas rendah':''}`,'homogen'),
+  md('PjBL / Discovery',gy('mencoba_langsung')/12+(sem>=3.5?1:0),`${gy('mencoba_langsung')}% ingin mencoba langsung`,'heterogen'),
+  md('Game-based Learning / TGT',(gy('bermain')+kb('bermain'))/20,`${gy('bermain')}% ingin bermain`,'heterogen'),
+  md('Rotasi stasiun aktif',gy('bergerak')/10,`${gy('bergerak')}% ingin bergerak`,'heterogen'),
+  md('PBL / Jigsaw / Diskusi kelompok',gy('berdiskusi')/12+pct(h=>h.c.preferensi_kerja=='kelompok')/25+(sem>=3.5&&kolT>30?1.5:0),`${gy('berdiskusi')}% ingin berdiskusi, semangat rata-rata ${sem.toFixed(1)}`,'heterogen')
+ ].sort((x,y)=>y.sk-x.sk).slice(0,3);
+ const mrg=pct(h=>h.murung),buka=mrg>=25||avg(h=>h.c.perasaan_sekarang)<3?'Pembuka menenangkan: tarik napas 1 menit, berbagi perasaan lewat ikon, lalu aktivitas ringan.':'Pembuka menggembirakan: permainan singkat bertema favorit kelas.';
+ PK={n,sd:Math.round(sd),gaya:top('gaya_belajar'),tema:top('tema_favorit'),semangat:sem.toFixed(1),murung:mrg,belumSarapan:pct(h=>h.c.sarapan=='belum'),lv:{berkembang:pct(h=>h.level=='berkembang'),cakap:pct(h=>h.level=='cakap'),mahir:pct(h=>h.level=='mahir')},buka,model:R[0].nama,jenis:R[0].j};
+ bd.innerHTML=`<div class=k><b>Profil kelas hari ini</b> (${n} siswa hadir)<p>Level: berkembang ${PK.lv.berkembang}% · cakap ${PK.lv.cakap}% · mahir ${PK.lv.mahir}%<br>Semangat rata-rata ${PK.semangat}/5 · murung ${mrg}% · belum sarapan ${PK.belumSarapan}%<br>Gaya belajar terbanyak: ${PK.gaya.join(', ')} · Tema favorit: ${PK.tema.join(', ')}</p><p>💡 ${buka}</p></div>
+ <div class=k><b>Model pembelajaran yang disarankan</b>${R.map((r,i)=>`<label style="display:block;margin:8px 0"><input type=radio name=md style="width:auto" value="${i}" ${i?'':'checked'}> <b>${r.nama}</b><br><small>Karena ${r.al}. Kelompok disarankan: ${r.j}</small></label>`).join('')}
+ <b>Jenis kelompok</b><br><label><input type=radio name=jn value=heterogen style="width:auto" ${R[0].j=='heterogen'?'checked':''}> Heterogen</label> <label><input type=radio name=jn value=homogen style="width:auto" ${R[0].j=='homogen'?'checked':''}> Homogen</label>
+ <button class=b id=sk>🎲 Susun kelompok</button></div><div id=gk></div>`;
+ bd.querySelectorAll('[name=md]').forEach(e=>e.onchange=()=>{const r=R[+e.value];PK.model=r.nama;PK.jenis=r.j;bd.querySelector(`[name=jn][value=${r.j}]`).checked=true});
+ $('#sk').onclick=()=>{const j=bd.querySelector('[name=jn]:checked').value;PK.jenis=j;G={jenis:j,gr:susun(H,j)};gambarKel()};
 }
 
 (P.has('s')?masuk:guru)();
