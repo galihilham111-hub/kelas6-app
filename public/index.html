@@ -203,9 +203,9 @@ async function bank(){
 /* ================= KELOMPOK & MODEL ================= */
 const NM=['Elang','Harimau','Lumba-lumba','Rajawali','Singa','Kuda Laut','Macan Tutul','Gajah','Beruang','Kancil'];
 let G=null,PK=null,SHOW=false;
-function susun(H,jenis){
- const g=Math.max(1,Math.round(H.length/5)),s=[...H].sort((a,b)=>b.skor-a.skor);
- if(jenis=='homogen'){const k=Math.ceil(s.length/g);return Array.from({length:g},(_,i)=>s.slice(i*k,(i+1)*k)).filter(x=>x.length)}
+function susun(H,jenis,jml){
+ const g=Math.max(1,Math.min(jml||Math.round(H.length/5),H.length,NM.length)),s=[...H].sort((a,b)=>b.skor-a.skor);
+ if(jenis=='homogen'){const base=Math.floor(s.length/g),ex=s.length%g;let p=0;return Array.from({length:g},(_,i)=>{const z=base+(i<ex?1:0),x=s.slice(p,p+z);p+=z;return x})}
  const gr=Array.from({length:g},()=>[]);
  s.forEach((h,i)=>{const r=Math.floor(i/g),p=i%g;gr[r%2?g-1-p:p].push(h)});
  const M=H.reduce((t,h)=>t+h.skor,0)/H.length;
@@ -258,9 +258,9 @@ async function kel(){
  bd.innerHTML=`<div class=k><b>Profil kelas hari ini</b> (${n} siswa hadir)<p>Level: berkembang ${PK.lv.berkembang}% · cakap ${PK.lv.cakap}% · mahir ${PK.lv.mahir}%<br>Semangat rata-rata ${PK.semangat}/5 · murung ${mrg}% · belum sarapan ${PK.belumSarapan}%<br>Gaya belajar terbanyak: ${PK.gaya.join(', ')} · Tema favorit: ${PK.tema.join(', ')}</p><p>💡 ${buka}</p></div>
  <div class=k><b>Model pembelajaran yang disarankan</b>${R.map((r,i)=>`<label style="display:block;margin:8px 0"><input type=radio name=md style="width:auto" value="${i}" ${i?'':'checked'}> <b>${r.nama}</b><br><small>Karena ${r.al}. Kelompok disarankan: ${r.j}</small></label>`).join('')}
  <b>Jenis kelompok</b><br><label><input type=radio name=jn value=heterogen style="width:auto" ${R[0].j=='heterogen'?'checked':''}> Heterogen</label> <label><input type=radio name=jn value=homogen style="width:auto" ${R[0].j=='homogen'?'checked':''}> Homogen</label>
- <button class=b id=sk>🎲 Susun kelompok</button></div><div id=gk></div>`;
+ <br><b>Jumlah kelompok</b> <input id=jk type=number min=1 max=10 value="${Math.max(1,Math.round(n/5))}" style="width:90px"> <small>dari ${n} siswa hadir (maksimal 10)</small><button class=b id=sk>🎲 Susun kelompok</button></div><div id=gk></div>`;
  bd.querySelectorAll('[name=md]').forEach(e=>e.onchange=()=>{const r=R[+e.value];PK.model=r.nama;PK.jenis=r.j;bd.querySelector(`[name=jn][value=${r.j}]`).checked=true});
- $('#sk').onclick=()=>{const j=bd.querySelector('[name=jn]:checked').value;PK.jenis=j;G={jenis:j,gr:susun(H,j)};gambarKel()};
+ $('#sk').onclick=()=>{const j=bd.querySelector('[name=jn]:checked').value;PK.jenis=j;G={jenis:j,gr:susun(H,j,+$('#jk').value)};gambarKel()};
 }
 
 /* ================= MODUL AJAR ================= */
