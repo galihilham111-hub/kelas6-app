@@ -13,7 +13,7 @@ h1{font-size:24px}input,textarea{width:100%;padding:12px;font:inherit;border:1px
 table{width:100%;border-collapse:collapse}td,th{padding:6px;border-bottom:1px solid #e3e8f5;text-align:left}
 .big{font-size:44px;letter-spacing:6px;font-weight:800;text-align:center}
 .bar{height:8px;background:#dbe1f2;border-radius:4px}.bar i{display:block;height:100%;background:#3b5bdb;border-radius:4px}
-nav{display:flex;gap:6px}nav .b{margin:0}video{width:100%;border-radius:12px}#kartu{display:none}
+nav{display:flex;gap:6px}nav .b{margin:0}video{width:100%;border-radius:12px}select{padding:10px;font:inherit;margin:4px 0}#kartu{display:none}
 @media print{body{background:#fff}#app{display:none}#kartu{display:grid;grid-template-columns:repeat(3,1fr)}
 .kt{border:1px dashed #888;padding:10px;text-align:center;break-inside:avoid;height:6.5cm}.kt svg{width:3.3cm;height:3.3cm}}
 </style></head><body>
@@ -125,10 +125,10 @@ async function muat(){
 }
 function ui(){
  clearInterval(tm);
- app.innerHTML=`<div class=w><nav><button class="b s ${tab=='d'?'':'g'}" id=t1>Dasbor</button><button class="b s ${tab=='s'?'':'g'}" id=t2>Siswa &amp; Kartu</button><button class="b s g" id=t3>Keluar</button></nav><div id=bd></div></div>`;
- $('#t1').onclick=()=>{tab='d';ui()};$('#t2').onclick=()=>{tab='s';ui()};
+ app.innerHTML=`<div class=w><nav><button class="b s ${tab=='d'?'':'g'}" id=t1>Dasbor</button><button class="b s ${tab=='s'?'':'g'}" id=t2>Siswa &amp; Kartu</button><button class="b s ${tab=='b'?'':'g'}" id=t4>Bank Soal</button><button class="b s g" id=t3>Keluar</button></nav><div id=bd></div></div>`;
+ $('#t1').onclick=()=>{tab='d';ui()};$('#t4').onclick=()=>{tab='b';ui()};$('#t2').onclick=()=>{tab='s';ui()};
  $('#t3').onclick=async()=>{await sb.auth.signOut();login()};
- tab=='d'?dasbor():siswaTab();
+ tab=='d'?dasbor():tab=='s'?siswaTab():bank();
  if(tab=='d'&&SS&&SS.status=='buka')tm=setInterval(async()=>{await muat();dasbor()},5000);
 }
 async function mulai(){const{error}=await sb.rpc('buat_sesi',{p_kelas_id:K.id});if(error)return alert(error.message);await muat();ui()}
@@ -160,6 +160,44 @@ function siswaTab(){
   $('#kartu').innerHTML=SW.filter(s=>s.aktif).map(s=>{const q=qrcode(0,'M');q.addData(s.token_qr);q.make();
    return `<div class=kt><b>${esc(s.nama)}</b>${q.createSvgTag(4,0)}<div style="font:700 22px monospace;letter-spacing:3px">${s.kode_kartu}</div></div>`}).join('');
   print();};
+}
+
+/* ================= BANK SOAL ================= */
+const PJ={literasi:'LITERASI: setiap soal punya "bacaan" berupa teks pendek 2-4 kalimat (cerita, informasi, atau pengumuman), lalu satu pertanyaan pemahaman tentang bacaan itu.',
+numerasi:'NUMERASI: soal cerita satu langkah (penjumlahan, pengurangan, perkalian, pembagian, pecahan, persen, keliling/luas, atau membaca data sederhana). "bacaan" boleh kosong "".',
+penalaran:'PENALARAN: soal logika atau pola sederhana (pola bilangan, urutan, sebab-akibat, mana yang tidak sesuai). "bacaan" boleh kosong "".'};
+function promptSoal(j,t,n,tema){return `Kamu adalah penyusun soal asesmen diagnostik untuk siswa SD kelas 6 (Fase C, Kurikulum Merdeka) di Indonesia. Buatkan ${n} soal pilihan ganda jenis ${PJ[j]}
+
+ATURAN:
+- Tingkat kesulitan: ${t} (1 = mudah, 2 = sedang, 3 = menantang), setara untuk semua soal.
+- Lintas mata pelajaran, bukan materi satu mapel tertentu.
+- Tepat 4 opsi: 1 jawaban benar dan 3 pengecoh yang masuk akal. Letak jawaban benar harus bervariasi.
+- "kunci" = nomor opsi yang benar, dimulai dari 0 (0 = opsi pertama, 3 = opsi keempat).
+- Konteks wajar untuk anak SD Indonesia (nama, tempat, situasi sehari-hari), tanpa konten sensitif.
+- ${tema?'Gunakan tema: '+tema+'.':'Variasikan tema (olahraga, game, hewan, alam, musik, teknologi, seni, memasak).'}
+- Hitung ulang jawaban setiap soal sebelum menulis kunci. Jangan ada soal kembar.
+
+FORMAT: keluarkan HANYA JSON array yang valid, tanpa teks lain dan tanpa tanda \`\`\`. Setiap elemen:
+{"tema":"...","bacaan":"...","pertanyaan":"...","opsi":["...","...","...","..."],"kunci":0,"penjelasan":"satu kalimat alasan jawaban benar"}`}
+async function setS(ids,s){const{error}=await sb.from('bank_soal').update({status:s}).in('id',ids);if(error)alert(error.message);bank()}
+async function bank(){
+ const{data:b}=await sb.from('bank_soal').select('*').order('dibuat_pada',{ascending:false});const B=b||[];
+ const c=(j)=>B.filter(x=>x.jenis==j&&x.status=='disetujui').length,dr=B.filter(x=>x.status=='draf');
+ $('#bd').innerHTML=`<div class=k><b>Soal disetujui</b><p>Literasi ${c('literasi')} · Numerasi ${c('numerasi')} · Penalaran ${c('penalaran')} · Draf menunggu tinjauan: ${dr.length}</p><small>Target awal: sekitar 30 per jenis.</small></div>
+ <div class=k><b>1. Buat prompt</b><br><select id=bj><option>literasi<option>numerasi<option>penalaran</select> <select id=bt><option value=1>mudah<option value=2 selected>sedang<option value=3>menantang</select> <input id=bn type=number value=20 min=5 max=30 style="width:90px"><input id=bm placeholder="Tema (opsional)"><button class=b id=bp>📋 Salin prompt</button><small>Tempel ke Gemini, ChatGPT, atau Claude.</small></div>
+ <div class=k><b>2. Tempel hasil AI (JSON)</b><textarea id=bh rows=6></textarea><button class=b id=bs>Periksa &amp; simpan sebagai draf</button></div>
+ <div class=k><b>3. Tinjau draf</b> <small>(periksa kunci jawaban ✅, terutama numerasi)</small>${dr.length?'<button class="b g" id=ba>Setujui semua draf yang tampil</button>':'<p>Tidak ada draf.</p>'}${dr.slice(0,20).map(x=>`<div class=k><small>${x.jenis} · tingkat ${x.tingkat}</small>${x.bacaan?`<p><i>${esc(x.bacaan)}</i></p>`:''}<p><b>${esc(x.pertanyaan)}</b></p>${x.opsi.map((o,i)=>`<div>${i==x.kunci?'✅':'▫️'} ${esc(o)}</div>`).join('')}<small>${esc(x.penjelasan||'')}</small><br><button class="b s" data-a="${x.id}">Setujui</button><button class="b s g" data-d="${x.id}">Buang</button></div>`).join('')}</div>`;
+ $('#bp').onclick=()=>navigator.clipboard.writeText(promptSoal($('#bj').value,$('#bt').value,$('#bn').value,$('#bm').value.trim())).then(()=>alert('Prompt disalin. Tempel ke AI pilihan Anda.'));
+ $('#bs').onclick=async()=>{let a;
+  try{a=JSON.parse($('#bh').value.replace(/^```(json)?|```$/gm,'').trim())}catch(e){return alert('JSON tidak terbaca. Minta AI mengulang dengan JSON saja.')}
+  if(!Array.isArray(a))return alert('Harus berupa array JSON.');
+  const j=$('#bj').value,t=+$('#bt').value,ok=[];
+  a.forEach(x=>{if(x&&x.pertanyaan&&Array.isArray(x.opsi)&&x.opsi.length==4&&new Set(x.opsi).size==4&&Number.isInteger(x.kunci)&&x.kunci>=0&&x.kunci<4)ok.push({jenis:j,tingkat:t,tema:x.tema||null,bacaan:x.bacaan||null,pertanyaan:String(x.pertanyaan),opsi:x.opsi.map(String),kunci:x.kunci,penjelasan:x.penjelasan||null})});
+  let n=0;for(const r of ok){const{error}=await sb.from('bank_soal').insert(r);if(!error)n++}
+  alert(n+' dari '+a.length+' soal disimpan sebagai draf. Sisanya ditolak (format salah atau soal kembar).');bank()};
+ const ba=$('#ba');if(ba)ba.onclick=()=>setS(dr.slice(0,20).map(x=>x.id),'disetujui');
+ $('#bd').querySelectorAll('[data-a]').forEach(e=>e.onclick=()=>setS([e.dataset.a],'disetujui'));
+ $('#bd').querySelectorAll('[data-d]').forEach(e=>e.onclick=()=>setS([e.dataset.d],'dibuang'));
 }
 
 (P.has('s')?masuk:guru)();
