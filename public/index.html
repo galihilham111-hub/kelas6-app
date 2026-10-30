@@ -127,11 +127,11 @@ async function muat(){
 }
 function ui(){
  clearInterval(tm);
- app.innerHTML=`<div class=w><div style="display:flex;gap:6px;align-items:center;margin-bottom:8px"><b>Kelas:</b><select id=kl>${KL.map(x=>`<option value="${x.id}" ${x.id==K.id?'selected':''}>${esc(x.nama)} (Fase ${x.fase})`).join('')}</select><button class="b s g" id=kb>＋ Kelas baru</button></div><nav><button class="b s ${tab=='d'?'':'g'}" id=t1>Dasbor</button><button class="b s ${tab=='s'?'':'g'}" id=t2>Siswa &amp; Kartu</button><button class="b s ${tab=='k'?'':'g'}" id=t5>Kelompok &amp; Model</button><button class="b s ${tab=='m'?'':'g'}" id=t6>Modul Ajar</button><button class="b s ${tab=='p'?'':'g'}" id=t7>Perangkat Belajar</button><button class="b s ${tab=='b'?'':'g'}" id=t4>Bank Soal</button><button class="b s g" id=t3>Keluar</button></nav><div id=bd></div></div>`;
+ app.innerHTML=`<div class=w><div style="display:flex;gap:6px;align-items:center;margin-bottom:8px"><b>Kelas:</b><select id=kl>${KL.map(x=>`<option value="${x.id}" ${x.id==K.id?'selected':''}>${esc(x.nama)} (Fase ${x.fase})`).join('')}</select><button class="b s g" id=kb>＋ Kelas baru</button></div><nav><button class="b s ${tab=='d'?'':'g'}" id=t1>Dasbor</button><button class="b s ${tab=='s'?'':'g'}" id=t2>Siswa &amp; Kartu</button><button class="b s ${tab=='k'?'':'g'}" id=t5>Kelompok &amp; Model</button><button class="b s ${tab=='m'?'':'g'}" id=t6>Modul Ajar</button><button class="b s ${tab=='p'?'':'g'}" id=t7>Perangkat Belajar</button><button class="b s ${tab=='c'?'':'g'}" id=t8>Capaian</button><button class="b s ${tab=='b'?'':'g'}" id=t4>Bank Soal</button><button class="b s g" id=t3>Keluar</button></nav><div id=bd></div></div>`;
  $('#t1').onclick=()=>{tab='d';ui()};$('#kb').onclick=kelasBaru;
- $('#kl').onchange=async e=>{K=KL.find(x=>x.id==e.target.value);localStorage.setItem('kelasId',K.id);G=null;PK=null;W={id:null,isi:{}};F={};await muat();ui()};$('#t4').onclick=()=>{tab='b';ui()};$('#t5').onclick=()=>{tab='k';ui()};$('#t6').onclick=()=>{tab='m';ui()};$('#t7').onclick=()=>{tab='p';ui()};$('#t2').onclick=()=>{tab='s';ui()};
+ $('#kl').onchange=async e=>{K=KL.find(x=>x.id==e.target.value);localStorage.setItem('kelasId',K.id);G=null;PK=null;W={id:null,isi:{}};F={};await muat();ui()};$('#t4').onclick=()=>{tab='b';ui()};$('#t5').onclick=()=>{tab='k';ui()};$('#t6').onclick=()=>{tab='m';ui()};$('#t7').onclick=()=>{tab='p';ui()};$('#t8').onclick=()=>{tab='c';ui()};$('#t2').onclick=()=>{tab='s';ui()};
  $('#t3').onclick=async()=>{await sb.auth.signOut();login()};
- tab=='d'?dasbor():tab=='s'?siswaTab():tab=='k'?kel():tab=='m'?mod():tab=='p'?perangkat():bank();
+ tab=='d'?dasbor():tab=='s'?siswaTab():tab=='k'?kel():tab=='m'?mod():tab=='p'?perangkat():tab=='c'?capaian():bank();
  if(tab=='d'&&SS&&SS.status=='buka')tm=setInterval(async()=>{await muat();dasbor()},5000);
 }
 async function mulai(){const{error}=await sb.rpc('buat_sesi',{p_kelas_id:K.id});if(error)return alert(error.message);await muat();ui()}
@@ -440,8 +440,8 @@ async function perangkat(){
 
 /* ===== siswa: menu kuis & kode game ===== */
 const akhir=()=>S.tugas?menu():selesai(S.nama);
-function menu(){app.innerHTML=`<div class=c><h1>Pilih kegiatan, ${esc(S.nama)}</h1><button class=b id=m1>📝 Kuis materi hari ini</button><button class=b id=m2>🎮 Masukkan kode game</button><button class="b g" id=m3>Selesai</button></div>`;
- $('#m1').onclick=kuis;$('#m2').onclick=kode;$('#m3').onclick=()=>selesai(S.nama)}
+function menu(){app.innerHTML=`<div class=c><h1>Pilih kegiatan, ${esc(S.nama)}</h1><button class=b id=m1>📝 Kuis materi hari ini</button><button class=b id=m2>🎮 Masukkan kode game</button><button class=b id=m4>💭 Refleksiku</button><button class="b g" id=m3>Selesai</button></div>`;
+ $('#m1').onclick=kuis;$('#m2').onclick=kode;$('#m4').onclick=refl;$('#m3').onclick=()=>selesai(S.nama)}
 async function kuis(){try{const d=await R('ambil_formatif',{p_token:S.tok});
  if(d.status!='ok'||!d.soal.length){app.innerHTML=`<div class=c><h2>${d.status=='sudah_selesai'?'Kuis sudah kamu kerjakan 👍':'Belum ada kuis'}</h2><button class=b id=bk>Kembali</button></div>`;$('#bk').onclick=menu;return}
  S.fq=d.soal;S.fn=0;S.fj=[];soalF()}catch(e){galat(kuis)}}
@@ -459,6 +459,50 @@ function kode(){app.innerHTML='<div class=c><h2>🎮 Kode hasil game</h2><input 
   const M={ok:'Kode diterima ✅',sudah_tercatat:'Kode ini sudah tercatat ✅',format_salah:'Format kode salah. Contoh: ABC-80-27',kode_salah:'Kode tidak cocok. Periksa lagi ya.',kode_tidak_dikenal:'Kode game ini belum dikenal.',tidak_ada:'Belum ada game hari ini.'};
   $('#pm').textContent=M[d.status]||'Coba lagi';$('#pm').style.color=/^(ok|sudah_tercatat)$/.test(d.status)?'#2b8a3e':'#c92a2a'}
   catch(e){$('#pm').textContent='Sinyal bermasalah, coba lagi.'}}}
+
+/* ================= CAPAIAN ================= */
+const LV=[[85,'Mahir','#2b8a3e'],[65,'Cakap','#4c6ef5'],[40,'Berkembang','#f08c00'],[0,'Mulai tumbuh','#c92a2a']];
+const lvl=p=>p==null?null:LV.find(x=>p>=x[0]),RE={paham:'😊',hampir_paham:'🤔',masih_bingung:'😕'};
+async function capaian(){
+ const bd=$('#bd');
+ if(!W.id){bd.innerHTML='<div class=k>Buka tab <b>Modul Ajar</b> dan pilih modul dulu.</div>';return}
+ await muat();
+ const{data:Q}=await sb.from('soal_formatif').select('id,indikator_no,tipe,pertanyaan,opsi,kunci').eq('modul_id',W.id).eq('status','disetujui');
+ const qs=Q||[],ids=qs.map(x=>x.id),E0=Promise.resolve({data:[]});
+ const[hf,pg,hm,rf,pr]=await Promise.all([ids.length?sb.from('hasil_formatif').select('siswa_id,soal_id,benar,jawaban').in('soal_id',ids):E0,sb.from('penilaian_guru').select('*').eq('modul_id',W.id),sb.from('hasil_miniapp').select('siswa_id,skor').eq('modul_id',W.id),sb.from('refleksi_siswa').select('*').eq('modul_id',W.id),sb.from('pengaturan').select('*').eq('kelas_id',K.id)]);
+ const P0=(pr.data||[])[0]||{},wf=P0.bobot_formatif??.5,wg=P0.bobot_guru??.35,wm=P0.bobot_miniapp??.15;
+ const qi=Object.fromEntries(qs.map(x=>[x.id,x])),FB={},GU={},MA={},RF={},H=hf.data||[];
+ H.forEach(x=>{const q=qi[x.soal_id];if(!q)return;const a=FB[x.siswa_id]=FB[x.siswa_id]||{},o=a[q.indikator_no]=a[q.indikator_no]||{b:0,t:0};o.t++;if(x.benar)o.b++});
+ (pg.data||[]).forEach(x=>{(GU[x.siswa_id]=GU[x.siswa_id]||{})[x.indikator_no]=x.skor});
+ (hm.data||[]).forEach(x=>{(MA[x.siswa_id]=MA[x.siswa_id]||[]).push(x.skor)});
+ (rf.data||[]).forEach(x=>RF[x.siswa_id]=x.tingkat_paham);
+ const N=Math.max(nInd(),...qs.map(x=>x.indikator_no||0)),IN=Array.from({length:N},(_,i)=>i+1),it={};
+ [...(W.isi[2]||'').matchAll(/indikator\s*(\d+)\s*[:.\-]\s*(.+)/gi)].forEach(m=>it[+m[1]]=m[2].replace(/[*_]/g,'').trim());
+ const sc=(s,i)=>{const c=[],f=(FB[s]||{})[i],g=(GU[s]||{})[i];if(f&&f.t>=2)c.push([wf,100*f.b/f.t]);if(g)c.push([wg,g/4*100]);
+  if(!c.length)return null;if(MA[s])c.push([wm,MA[s].reduce((a,b)=>a+b,0)/MA[s].length]);return c.reduce((a,x)=>a+x[0]*x[1],0)/c.reduce((a,x)=>a+x[0],0)};
+ const aktif=SW.filter(s=>s.aktif);
+ const dik=IN.map(i=>{const v=aktif.map(s=>lvl(sc(s.id,i))).filter(Boolean);return`<div>Indikator ${i}: <b>${v.length?Math.round(100*v.filter(x=>x[0]>=65).length/v.length)+'%':'—'}</b> Cakap/Mahir <small>(${v.length} siswa terdata${it[i]?' · '+esc(it[i].slice(0,70)):''})</small></div>`}).join('');
+ const mis=[];qs.forEach(q=>{const a=H.filter(x=>x.soal_id==q.id);if(a.length<5)return;
+  if(a.filter(x=>!x.benar).length/a.length>=.8)mis.push(`Indikator ${q.indikator_no}: hampir semua salah pada "${esc(q.pertanyaan.slice(0,70))}…" — periksa soal dan kuncinya.`);
+  else if(q.tipe=='pilihan_ganda'){const c={};a.filter(x=>!x.benar).forEach(x=>c[x.jawaban]=(c[x.jawaban]||0)+1);const t=Object.entries(c).sort((x,y)=>y[1]-x[1])[0];
+   if(t&&t[1]/a.length>=.4)mis.push(`Indikator ${q.indikator_no}: ${Math.round(100*t[1]/a.length)}% memilih "${esc(q.opsi[t[0]])}" pada "${esc(q.pertanyaan.slice(0,60))}…" — kemungkinan miskonsepsi.`)}});
+ const fl=s=>{const c=SS&&SS.cd&&SS.cd[s.id];return c&&(c.perasaan_berangkat<=2||c.perasaan_sekarang<=2||c.sarapan=='belum'||c.tidur=='sangat_kurang')};
+ bd.innerHTML=`<div class=k><b>Ringkasan kelas</b> — ${esc(F.mapel||'')} ${esc(F.materi||'')}${dik}${mis.length?'<p><b>Perlu perhatian</b></p>'+mis.map(x=>'<div>⚠️ '+x+'</div>').join(''):''}</div>
+ <div class=k><b>Capaian per siswa</b><div style="overflow-x:auto"><table><tr><th>Siswa${IN.map(i=>`<th title="${esc(it[i]||'')}">Ind. ${i}`).join('')}<th>Refleksi</tr>${aktif.map(s=>`<tr><td>${esc(s.nama)}${IN.map(i=>{const p=sc(s.id,i),l=lvl(p),f=(FB[s.id]||{})[i];
+  return`<td>${l?`<b style="color:${l[2]}">${l[1]}</b>${fl(s)&&p<65?' ⚠️':''}`:'<small>data belum cukup</small>'}<br><small>${f?f.b+'/'+f.t+' kuis':''}</small><br><select data-g="${s.id}|${i}" style="width:72px"><option value="">guru</option>${[1,2,3,4].map(v=>`<option ${(GU[s.id]||{})[i]==v?'selected':''}>${v}</option>`).join('')}</select>`}).join('')}<td>${RE[RF[s.id]]||''}</tr>`).join('')}</table></div>
+ <small>Pilihan "guru" = nilai observasi Anda (1-4). Level: gabungan kuis ${Math.round(wf*100)}%, guru ${Math.round(wg*100)}%, game ${Math.round(wm*100)}%. Minimal 2 soal kuis per indikator, kalau kurang dan belum ada nilai guru tertulis "data belum cukup". ⚠️ = hasil rendah pada siswa yang hari ini murung, belum sarapan, atau kurang tidur, jadi konfirmasi ulang dulu. Level hanyalah usulan.</small></div>`;
+ bd.querySelectorAll('[data-g]').forEach(e=>e.onchange=async()=>{const[sid,i]=e.dataset.g.split('|');
+  const r=e.value?await sb.from('penilaian_guru').upsert({siswa_id:sid,modul_id:W.id,indikator_no:+i,skor:+e.value},{onConflict:'siswa_id,modul_id,indikator_no'}):await sb.from('penilaian_guru').delete().eq('siswa_id',sid).eq('modul_id',W.id).eq('indikator_no',+i);
+  if(r.error)return alert(r.error.message);capaian()});
+}
+function refl(){
+ app.innerHTML='<div class=c><h2>💭 Hari ini aku merasa…</h2><button class="b o" data-v=paham>😊 Paham</button><button class="b o" data-v=hampir_paham>🤔 Hampir paham</button><button class="b o" data-v=masih_bingung>😕 Masih bingung</button><input id=rk maxlength=200 placeholder="Tulis satu kalimat (boleh dikosongkan)"><button class=b id=rs>Kirim</button><button class="b g" id=bk>Kembali</button></div>';
+ let v='';app.querySelectorAll('.o').forEach(b=>b.onclick=()=>{v=b.dataset.v;app.querySelectorAll('.o').forEach(x=>x.classList.toggle('on',x==b))});
+ $('#bk').onclick=menu;
+ $('#rs').onclick=async()=>{if(!v)return alert('Pilih salah satu dulu ya.');
+  try{await R('simpan_refleksi',{p_token:S.tok,p_tingkat:v,p_kalimat:$('#rk').value});app.innerHTML='<div class=c><h1>Terima kasih! 💛</h1><button class=b id=bk>Kembali</button></div>';$('#bk').onclick=menu}
+  catch(e){alert('Sinyal bermasalah, coba lagi.')}};
+}
 
 (P.has('s')?masuk:guru)();
 </script></body></html>
