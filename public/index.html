@@ -352,7 +352,7 @@ function parseModul(t){const o={};let cur=0;
  Object.keys(o).forEach(k=>{o[k]=o[k].trim();if(!o[k])delete o[k]});return o}
 function bicara(t){if(!window.speechSynthesis)return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='id-ID';speechSynthesis.speak(u)}
 async function kelasBaru(){
- const t=+prompt('Kelas berapa? (1-6)');if(!(t>=1&&t<=6))return;
+ const t=parseInt((prompt('Kelas berapa? Ketik angka 1 sampai 6')||'').replace(/\D/g,''));if(!(t>=1&&t<=6))return alert('Kelas tidak dibuat. Ketik angka 1 sampai 6, misalnya 3.');
  const h=(prompt('Nama rombel (boleh kosong, contoh: A)')||'').trim(),fase=t<=2?'A':t<=4?'B':'C';
  const{data,error}=await sb.from('kelas').insert({nama:'Kelas '+t+(h?' '+h:''),tingkat:t,fase,tahun_ajaran:'2026/2027'}).select().single();
  if(error)return alert(error.message);
