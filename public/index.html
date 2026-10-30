@@ -127,11 +127,11 @@ async function muat(){
 }
 function ui(){
  clearInterval(tm);
- app.innerHTML=`<div class=w><div style="display:flex;gap:6px;align-items:center;margin-bottom:8px"><b>Kelas:</b><select id=kl>${KL.map(x=>`<option value="${x.id}" ${x.id==K.id?'selected':''}>${esc(x.nama)} (Fase ${x.fase})`).join('')}</select><button class="b s g" id=kb>＋ Kelas baru</button></div><nav><button class="b s ${tab=='d'?'':'g'}" id=t1>Dasbor</button><button class="b s ${tab=='s'?'':'g'}" id=t2>Siswa &amp; Kartu</button><button class="b s ${tab=='k'?'':'g'}" id=t5>Kelompok &amp; Model</button><button class="b s ${tab=='m'?'':'g'}" id=t6>Modul Ajar</button><button class="b s ${tab=='b'?'':'g'}" id=t4>Bank Soal</button><button class="b s g" id=t3>Keluar</button></nav><div id=bd></div></div>`;
+ app.innerHTML=`<div class=w><div style="display:flex;gap:6px;align-items:center;margin-bottom:8px"><b>Kelas:</b><select id=kl>${KL.map(x=>`<option value="${x.id}" ${x.id==K.id?'selected':''}>${esc(x.nama)} (Fase ${x.fase})`).join('')}</select><button class="b s g" id=kb>＋ Kelas baru</button></div><nav><button class="b s ${tab=='d'?'':'g'}" id=t1>Dasbor</button><button class="b s ${tab=='s'?'':'g'}" id=t2>Siswa &amp; Kartu</button><button class="b s ${tab=='k'?'':'g'}" id=t5>Kelompok &amp; Model</button><button class="b s ${tab=='m'?'':'g'}" id=t6>Modul Ajar</button><button class="b s ${tab=='p'?'':'g'}" id=t7>Perangkat Belajar</button><button class="b s ${tab=='b'?'':'g'}" id=t4>Bank Soal</button><button class="b s g" id=t3>Keluar</button></nav><div id=bd></div></div>`;
  $('#t1').onclick=()=>{tab='d';ui()};$('#kb').onclick=kelasBaru;
- $('#kl').onchange=async e=>{K=KL.find(x=>x.id==e.target.value);localStorage.setItem('kelasId',K.id);G=null;PK=null;W={id:null,isi:{}};F={};await muat();ui()};$('#t4').onclick=()=>{tab='b';ui()};$('#t5').onclick=()=>{tab='k';ui()};$('#t6').onclick=()=>{tab='m';ui()};$('#t2').onclick=()=>{tab='s';ui()};
+ $('#kl').onchange=async e=>{K=KL.find(x=>x.id==e.target.value);localStorage.setItem('kelasId',K.id);G=null;PK=null;W={id:null,isi:{}};F={};await muat();ui()};$('#t4').onclick=()=>{tab='b';ui()};$('#t5').onclick=()=>{tab='k';ui()};$('#t6').onclick=()=>{tab='m';ui()};$('#t7').onclick=()=>{tab='p';ui()};$('#t2').onclick=()=>{tab='s';ui()};
  $('#t3').onclick=async()=>{await sb.auth.signOut();login()};
- tab=='d'?dasbor():tab=='s'?siswaTab():tab=='k'?kel():tab=='m'?mod():bank();
+ tab=='d'?dasbor():tab=='s'?siswaTab():tab=='k'?kel():tab=='m'?mod():tab=='p'?perangkat():bank();
  if(tab=='d'&&SS&&SS.status=='buka')tm=setInterval(async()=>{await muat();dasbor()},5000);
 }
 async function mulai(){const{error}=await sb.rpc('buat_sesi',{p_kelas_id:K.id});if(error)return alert(error.message);await muat();ui()}
@@ -359,5 +359,76 @@ async function kelasBaru(){
  if(fase=='A')await sb.from('pengaturan').update({jml_literasi:1,jml_numerasi:1,jml_penalaran:1}).eq('kelas_id',data.id);
  KL.push(data);K=data;localStorage.setItem('kelasId',K.id);G=null;PK=null;W={id:null,isi:{}};F={};await muat();tab='s';ui();
 }
+/* ================= PERANGKAT BELAJAR ================= */
+const HM={slide:'Daftar slide maksimal 10: judul, isi singkat, ide visual, dan catatan untuk guru.',infografis:'Satu infografis: judul, 4-6 blok informasi, saran ikon/ilustrasi, dan urutan baca. Bila bisa, buatkan sebagai halaman HTML/SVG.',cerita:'Cerita bergambar 6-8 panel: narasi singkat, deskripsi gambar tiap panel, dan 2 pertanyaan di akhir.',video:'Naskah video 3-5 menit: pembagian adegan, narasi, visual, dan satu pertanyaan pemantik di tengah.',lkpd:'LKPD bergambar lengkap: petunjuk, aktivitas atau soal, ruang jawaban, dan rubrik singkat.'};
+const nInd=()=>{const m=[...(W.isi[2]||'').matchAll(/indikator\s*(\d+)/gi)].map(x=>+x[1]);return m.length?Math.max(...m):3};
+function ctxP(){const c=n=>(W.isi[n]||'').slice(0,1800);return konteks(F)+`\n\nCUPLIKAN MODUL (acuan keselarasan):\n[Tujuan dan indikator]\n${c(2)}\n[Diferensiasi]\n${c(5)}\n[Kegiatan]\n${c(7)}`}
+const chkK=(k,s)=>String(([...k].reduce((t,c)=>t+c.charCodeAt(0),0)+s*31+17)%100).padStart(2,'0');
+function pMedia(j){return `Kamu adalah perancang media pembelajaran untuk SD. Buatkan ${j} untuk kegiatan inti pembelajaran berikut.
+
+${ctxP()}
+
+ATURAN:
+- Selaras dengan TP, indikator, dan model pembelajaran di atas.
+- Sediakan 3 tingkat dukungan untuk konten yang sama: A (terbimbing: banyak contoh dan petunjuk), B (standar), C (tantangan pengayaan). Beri nama netral, jangan memakai kata "lemah" atau "pintar".
+- Gunakan tema favorit kelas pada contoh dan konteks.
+- Bahasa sesuai kelas ${K.tingkat}, ramah, aman, tanpa nama siswa.
+- Format keluaran: ${HM[j]}`}
+function mk(m){return /TGT|Game/i.test(m)?'kuis tim bergiliran dengan papan skor':/PjBL|Discovery/i.test(m)?'misi bertahap 3-5 misi dengan petunjuk':/Rotasi/i.test(m)?'3-4 stasiun bertema yang dimainkan berurutan':/PBL|Jigsaw|Diskusi/i.test(m)?'studi kasus dengan pilihan keputusan dan umpan balik':/TaRL|terbimbing/i.test(m)?'latihan bertingkat dengan petunjuk bertahap':'kuis interaktif'}
+function pMini(mode,k){const ex=80;return `Kamu adalah pembuat game edukasi sederhana. Buatkan SATU file HTML mandiri berisi permainan untuk pembelajaran berikut.
+
+${ctxP()}
+
+SPESIFIKASI:
+1. Satu file HTML (HTML, CSS, JavaScript sekaligus). Tanpa pustaka atau CDN luar, tanpa gambar luar (pakai emoji, SVG, atau CSS), tanpa login, tanpa meminta nama atau data pribadi, dan tidak menyimpan atau mengirim data ke mana pun.
+2. Tampil baik di HP, laptop, dan layar interaktif kelas; tombol besar dan teks mudah dibaca untuk kelas ${K.tingkat}.
+3. Mekanik permainan: ${mk(F.model)}. Cukup SATU fitur utama dengan 8-10 soal atau tantangan, selaras dengan indikator ketercapaian di atas, dan tema favorit kelas.
+4. Di awal, pemain memilih tingkat dukungan: "Jelajah" (soal lebih mudah dan ada petunjuk bertahap), "Cakap" (standar), atau "Tantang" (soal lebih menantang).
+5. Mode: ${mode=='tim'?'TIM. Satu layar dimainkan bersama oleh satu kelompok dan skor berlaku untuk tim.':'INDIVIDU. Satu pemain per layar.'}
+6. Di akhir tampilkan layar hasil: skor bulat 0-100 dan KODE HASIL. Kode WAJIB dihitung dengan fungsi persis berikut (jangan diubah):
+function kodeHasil(skor){const K='${k}';let t=0;for(const c of K)t+=c.charCodeAt(0);const chk=String((t+skor*31+17)%100).padStart(2,'0');return K+'-'+skor+'-'+chk}
+   Contoh: skor ${ex} menghasilkan kode ${k}-${ex}-${chkK(k,ex)}. Tampilkan kode dengan huruf besar dan tebal agar mudah disalin siswa.
+7. Pastikan perhitungan skor benar dan semua tombol berfungsi. Jangan tambahkan fitur lain.
+
+Keluarkan HANYA satu blok kode HTML lengkap.`}
+function pForm(n){return `Kamu adalah penyusun asesmen formatif SD. Buatkan soal formatif berlabel indikator untuk pembelajaran berikut.
+
+${ctxP()}
+
+ATURAN:
+- Untuk SETIAP indikator (Indikator 1 sampai ${nInd()}) buat ${n} soal, tersebar di tingkat 1 (mudah), 2 (sedang), 3 (menantang).
+- Campuran tipe: "pilihan_ganda" (4 opsi, 1 benar), "isian" (jawaban singkat), dan paling banyak 1 "uraian" per indikator.
+- Soal menguji indikator yang dilabeli, memakai tema favorit kelas, bahasa sesuai kelas ${K.tingkat}, tanpa nama siswa.
+- Hitung ulang setiap jawaban sebelum menulis kunci. Jangan ada soal kembar.
+
+FORMAT: keluarkan HANYA JSON array valid, tanpa teks lain dan tanpa tanda \`\`\`. Setiap elemen:
+{"indikator":1,"tingkat":1,"tipe":"pilihan_ganda","pertanyaan":"...","opsi":["...","...","...","..."],"kunci":0,"penjelasan":"satu kalimat"}
+Untuk "pilihan_ganda", kunci = nomor opsi benar mulai dari 0. Untuk "isian", kunci = jawaban singkat (teks) dan opsi = null. Untuk "uraian", kunci = poin-poin jawaban ideal (teks) dan opsi = null.`}
+async function perangkat(){
+ if(!PK||!W.id){$('#bd').innerHTML='<div class=k>Buka tab <b>Modul Ajar</b> dan simpan atau buka satu modul dulu. Tab <b>Kelompok &amp; Model</b> juga perlu dibuka sekali.</div>';return}
+ const{data:S}=await sb.from('soal_formatif').select('*').eq('modul_id',W.id).order('indikator_no').order('tingkat');
+ const cp=(j,pr)=>{sb.from('perangkat_belajar').insert({modul_id:W.id,jenis:j,prompt:pr});navigator.clipboard.writeText(pr).then(()=>alert('Prompt disalin. Tempel ke AI pilihan Anda.'))};
+ $('#bd').innerHTML=`<div class=k><b>Modul:</b> ${esc(F.mapel)} - ${esc(F.materi)}<br><small>Ketiga prompt memakai TP, indikator, model, dan profil kelas dari modul ini.</small></div>
+ <div class=k><b>1. Media pembelajaran</b><br><select id=pj>${Object.keys(HM).map(x=>`<option>${x}`).join('')}</select><button class=b id=c1>📋 Salin prompt media</button></div>
+ <div class=k><b>2. Miniapp / game</b><br><select id=pm><option value=tim>Dimainkan tim<option value=individu>Dimainkan individu</select><button class=b id=c2>📋 Salin prompt miniapp</button><small>Hasilnya satu berkas HTML. Simpan dan buka di browser, atau pratinjau langsung di AI.</small></div>
+ <div class=k><b>3. Asesmen formatif</b><br><input id=pn type=number min=2 max=6 value=3 style="width:90px"> soal per indikator<button class=b id=c3>📋 Salin prompt formatif</button>
+ <textarea id=ft2 rows=5 placeholder="Tempel hasil JSON dari AI di sini"></textarea><button class=b id=fs>Periksa &amp; simpan soal formatif</button></div>
+ <div class=k>${S&&S.length?`<b>Soal formatif (${S.filter(x=>x.status=='disetujui').length} disetujui dari ${S.length})</b> <small>periksa kunci jawaban ✅</small><button class="b g" id=fa>Setujui semua draf</button>`+S.slice(0,30).map(x=>`<div class=k><small>Indikator ${x.indikator_no} · tingkat ${x.tingkat} · ${x.tipe} · ${x.status}</small><p><b>${esc(x.pertanyaan)}</b></p>${x.tipe=='pilihan_ganda'?x.opsi.map((o,i)=>`<div>${i==x.kunci?'✅':'▫️'} ${esc(o)}</div>`).join(''):`<div>✅ ${esc(x.kunci)}</div>`}<button class="b s" data-s="${x.id}">Setujui</button><button class="b s g" data-x="${x.id}">Buang</button></div>`).join(''):'<p>Belum ada soal formatif.</p>'}</div>`;
+ $('#c1').onclick=()=>cp('media',pMedia($('#pj').value));
+ $('#c2').onclick=()=>{const k=Array.from({length:3},()=>'ABCDEFGHJKLMNPQRSTUVWXYZ'[Math.floor(Math.random()*24)]).join('');cp('miniapp',pMini($('#pm').value,k))};
+ $('#c3').onclick=()=>cp('formatif',pForm(+$('#pn').value||3));
+ $('#fs').onclick=async()=>{let a;
+  try{const t=$('#ft2').value;a=JSON.parse(t.slice(t.indexOf('['),t.lastIndexOf(']')+1))}catch(e){return alert('JSON tidak terbaca. Minta AI mengulang dengan JSON saja.')}
+  const ok=[];(Array.isArray(a)?a:[]).forEach(x=>{if(!x||!x.pertanyaan||!['pilihan_ganda','isian','uraian'].includes(x.tipe))return;const pg=x.tipe=='pilihan_ganda';
+   if(pg&&!(Array.isArray(x.opsi)&&x.opsi.length==4&&Number.isInteger(x.kunci)&&x.kunci>=0&&x.kunci<4))return;
+   ok.push({modul_id:W.id,indikator_no:+x.indikator||null,tingkat:[1,2,3].includes(+x.tingkat)?+x.tingkat:2,tipe:x.tipe,pertanyaan:String(x.pertanyaan),opsi:pg?x.opsi.map(String):null,kunci:x.kunci??null,penjelasan:x.penjelasan||null})});
+  if(!ok.length)return alert('Tidak ada soal valid.');
+  const{error}=await sb.from('soal_formatif').insert(ok);if(error)return alert(error.message);
+  alert(ok.length+' dari '+a.length+' soal disimpan sebagai draf.');perangkat()};
+ const fa=$('#fa');if(fa)fa.onclick=async()=>{await sb.from('soal_formatif').update({status:'disetujui'}).eq('modul_id',W.id).eq('status','draf');perangkat()};
+ $('#bd').querySelectorAll('[data-s]').forEach(e=>e.onclick=async()=>{await sb.from('soal_formatif').update({status:'disetujui'}).eq('id',e.dataset.s);perangkat()});
+ $('#bd').querySelectorAll('[data-x]').forEach(e=>e.onclick=async()=>{await sb.from('soal_formatif').delete().eq('id',e.dataset.x);perangkat()});
+}
+
 (P.has('s')?masuk:guru)();
 </script></body></html>
