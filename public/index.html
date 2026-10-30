@@ -52,9 +52,9 @@ function masuk(m){
  app.innerHTML=`<div class=c><h1>🚀 Misi Harian</h1>${m?`<p class=e>${m}</p>`:''}<input id=ks placeholder="Kode sesi" maxlength=6 value="${esc(P.get('s')||'')}"><input id=kk placeholder="Kode kartu / isi QR" maxlength=40><button class=b id=go>Mulai</button><button class="b g" id=sc>📷 Pindai QR kartu</button><video id=v hidden playsinline></video></div>`;
  $('#go').onclick=async()=>{try{
   const d=await R('siswa_masuk',{p_kode_sesi:$('#ks').value,p_kode_kartu:$('#kk').value});
-  if(d.status=='sudah_selesai')return selesai(d.nama_panggilan,1);
+  if(d.status=='sudah_selesai'){S={tok:d.token,nama:d.nama_panggilan,tugas:d.ada_tugas};return d.ada_tugas?menu():selesai(d.nama_panggilan,1)}
   if(d.status!='ok')return masuk(MSG[d.status]||'Coba lagi.');
-  S={tok:d.token,nama:d.nama_panggilan,a:{},i:0};d.langkah=='misi'?misi():cek();
+  S={tok:d.token,nama:d.nama_panggilan,tugas:d.ada_tugas,a:{},i:0};d.langkah=='misi'?misi():cek();
  }catch(e){masuk('Sinyal bermasalah, coba lagi.')}};
  $('#sc').onclick=async()=>{
   if(!('BarcodeDetector' in window))return alert('Pemindai tidak didukung di perangkat ini. Ketik kode pendek di bawah QR pada kartu.');
@@ -86,7 +86,7 @@ async function kirimCek(){
 }
 async function misi(){
  try{const d=await R('ambil_misi',{p_token:S.tok});S.m=d.soal;S.n=0;S.j=[];
-  if(!S.m.length){await R('kirim_misi',{p_token:S.tok,p_jawaban:[]});return selesai(S.nama)}
+  if(!S.m.length){await R('kirim_misi',{p_token:S.tok,p_jawaban:[]});return akhir()}
   soal();
  }catch(e){galat(misi)}
 }
@@ -98,7 +98,7 @@ function soal(){
 }
 async function kirimM(){
  app.innerHTML='<div class=c><h2>Mengirim…</h2></div>';
- try{await R('kirim_misi',{p_token:S.tok,p_jawaban:S.j});selesai(S.nama)}catch(e){galat(kirimM)}
+ try{await R('kirim_misi',{p_token:S.tok,p_jawaban:S.j});akhir()}catch(e){galat(kirimM)}
 }
 function selesai(n,sudah){
  app.innerHTML=`<div class=c><h1>🎉 Misi selesai!</h1><p>${sudah?'Kamu sudah mengisi hari ini, ':'Terima kasih, '}${esc(n)}!</p></div>`;
@@ -403,18 +403,26 @@ ATURAN:
 
 FORMAT: keluarkan HANYA JSON array valid, tanpa teks lain dan tanpa tanda \`\`\`. Setiap elemen:
 {"indikator":1,"tingkat":1,"tipe":"pilihan_ganda","pertanyaan":"...","opsi":["...","...","...","..."],"kunci":0,"penjelasan":"satu kalimat"}
-Untuk "pilihan_ganda", kunci = nomor opsi benar mulai dari 0. Untuk "isian", kunci = jawaban singkat (teks) dan opsi = null. Untuk "uraian", kunci = poin-poin jawaban ideal (teks) dan opsi = null.`}
+Untuk "pilihan_ganda", kunci = nomor opsi benar mulai dari 0. Untuk "isian", kunci = jawaban singkat (teks; jika ada beberapa jawaban yang dapat diterima, pisahkan dengan tanda |) dan opsi = null. Untuk "uraian", kunci = poin-poin jawaban ideal (teks) dan opsi = null.`}
 async function perangkat(){
  if(!PK||!W.id){$('#bd').innerHTML='<div class=k>Buka tab <b>Modul Ajar</b> dan simpan atau buka satu modul dulu. Tab <b>Kelompok &amp; Model</b> juga perlu dibuka sekali.</div>';return}
  const{data:S}=await sb.from('soal_formatif').select('*').eq('modul_id',W.id).order('indikator_no').order('tingkat');
+ await muat();const ids=(S||[]).map(x=>x.id);
+ const[hf,hm]=await Promise.all([ids.length?sb.from('hasil_formatif').select('siswa_id,benar').in('soal_id',ids):Promise.resolve({data:[]}),sb.from('hasil_miniapp').select('*').eq('modul_id',W.id)]);
+ const hs={},mn={};(hf.data||[]).forEach(x=>{const o=hs[x.siswa_id]=hs[x.siswa_id]||{b:0,t:0};o.t++;if(x.benar)o.b++});
+ (hm.data||[]).forEach(x=>{(mn[x.siswa_id]=mn[x.siswa_id]||[]).push(x.skor+(x.mode=='tim'?' (tim)':''))});
+ const aktif=!!SS&&SS.modul_aktif==W.id,rows=SW.filter(x=>hs[x.id]||mn[x.id]);
+ const cAk=`<div class=k><b>4. Aktifkan untuk siswa hari ini</b><p>${!SS?'Mulai sesi di Dasbor dulu.':aktif?'✅ Aktif. Siswa yang memindai kartu akan melihat menu Kuis dan Kode Game.':'Belum aktif. Pastikan soal formatif sudah disetujui.'}</p>${SS?`<button class=b id=ak>${aktif?'Nonaktifkan':'Aktifkan kuis &amp; kode game'}</button>`:''}</div>`;
+ const cHs=`<div class=k><b>5. Hasil masuk</b>${rows.length?'<table><tr><th>Siswa<th>Kuis (benar/total)<th>Skor game</tr>'+rows.map(x=>`<tr><td>${esc(x.nama)}<td>${hs[x.id]?hs[x.id].b+'/'+hs[x.id].t:'—'}<td>${(mn[x.id]||[]).join(', ')||'—'}</tr>`).join('')+'</table><small>Soal uraian tidak ikut dinilai otomatis. Skor tim tercatat atas nama perwakilan.</small>':'<p>Belum ada hasil.</p>'}</div>`;
  const cp=(j,pr)=>{sb.from('perangkat_belajar').insert({modul_id:W.id,jenis:j,prompt:pr});navigator.clipboard.writeText(pr).then(()=>alert('Prompt disalin. Tempel ke AI pilihan Anda.'))};
  $('#bd').innerHTML=`<div class=k><b>Modul:</b> ${esc(F.mapel)} - ${esc(F.materi)}<br><small>Ketiga prompt memakai TP, indikator, model, dan profil kelas dari modul ini.</small></div>
  <div class=k><b>1. Media pembelajaran</b><br><select id=pj>${Object.keys(HM).map(x=>`<option>${x}`).join('')}</select><button class=b id=c1>📋 Salin prompt media</button></div>
  <div class=k><b>2. Miniapp / game</b><br><select id=pm><option value=tim>Dimainkan tim<option value=individu>Dimainkan individu</select><button class=b id=c2>📋 Salin prompt miniapp</button><small>Hasilnya satu berkas HTML. Simpan dan buka di browser, atau pratinjau langsung di AI.</small></div>
  <div class=k><b>3. Asesmen formatif</b><br><input id=pn type=number min=2 max=6 value=3 style="width:90px"> soal per indikator<button class=b id=c3>📋 Salin prompt formatif</button>
  <textarea id=ft2 rows=5 placeholder="Tempel hasil JSON dari AI di sini"></textarea><button class=b id=fs>Periksa &amp; simpan soal formatif</button></div>
- <div class=k>${S&&S.length?`<b>Soal formatif (${S.filter(x=>x.status=='disetujui').length} disetujui dari ${S.length})</b> <small>periksa kunci jawaban ✅</small><button class="b g" id=fa>Setujui semua draf</button>`+S.slice(0,30).map(x=>`<div class=k><small>Indikator ${x.indikator_no} · tingkat ${x.tingkat} · ${x.tipe} · ${x.status}</small><p><b>${esc(x.pertanyaan)}</b></p>${x.tipe=='pilihan_ganda'?x.opsi.map((o,i)=>`<div>${i==x.kunci?'✅':'▫️'} ${esc(o)}</div>`).join(''):`<div>✅ ${esc(x.kunci)}</div>`}<button class="b s" data-s="${x.id}">Setujui</button><button class="b s g" data-x="${x.id}">Buang</button></div>`).join(''):'<p>Belum ada soal formatif.</p>'}</div>`;
+ <div class=k>${S&&S.length?`<b>Soal formatif (${S.filter(x=>x.status=='disetujui').length} disetujui dari ${S.length})</b> <small>periksa kunci jawaban ✅</small><button class="b g" id=fa>Setujui semua draf</button>`+S.slice(0,30).map(x=>`<div class=k><small>Indikator ${x.indikator_no} · tingkat ${x.tingkat} · ${x.tipe} · ${x.status}</small><p><b>${esc(x.pertanyaan)}</b></p>${x.tipe=='pilihan_ganda'?x.opsi.map((o,i)=>`<div>${i==x.kunci?'✅':'▫️'} ${esc(o)}</div>`).join(''):`<div>✅ ${esc(x.kunci)}</div>`}<button class="b s" data-s="${x.id}">Setujui</button><button class="b s g" data-x="${x.id}">Buang</button></div>`).join(''):'<p>Belum ada soal formatif.</p>'}</div>${cAk}${cHs}`;
  $('#c1').onclick=()=>cp('media',pMedia($('#pj').value));
+ const ak=$('#ak');if(ak)ak.onclick=async()=>{await sb.from('sesi_harian').update({modul_aktif:aktif?null:W.id}).eq('id',SS.id);perangkat()};
  $('#c2').onclick=()=>{const k=Array.from({length:3},()=>'ABCDEFGHJKLMNPQRSTUVWXYZ'[Math.floor(Math.random()*24)]).join('');cp('miniapp',pMini($('#pm').value,k))};
  $('#c3').onclick=()=>cp('formatif',pForm(+$('#pn').value||3));
  $('#fs').onclick=async()=>{let a;
@@ -429,6 +437,28 @@ async function perangkat(){
  $('#bd').querySelectorAll('[data-s]').forEach(e=>e.onclick=async()=>{await sb.from('soal_formatif').update({status:'disetujui'}).eq('id',e.dataset.s);perangkat()});
  $('#bd').querySelectorAll('[data-x]').forEach(e=>e.onclick=async()=>{await sb.from('soal_formatif').delete().eq('id',e.dataset.x);perangkat()});
 }
+
+/* ===== siswa: menu kuis & kode game ===== */
+const akhir=()=>S.tugas?menu():selesai(S.nama);
+function menu(){app.innerHTML=`<div class=c><h1>Pilih kegiatan, ${esc(S.nama)}</h1><button class=b id=m1>📝 Kuis materi hari ini</button><button class=b id=m2>🎮 Masukkan kode game</button><button class="b g" id=m3>Selesai</button></div>`;
+ $('#m1').onclick=kuis;$('#m2').onclick=kode;$('#m3').onclick=()=>selesai(S.nama)}
+async function kuis(){try{const d=await R('ambil_formatif',{p_token:S.tok});
+ if(d.status!='ok'||!d.soal.length){app.innerHTML=`<div class=c><h2>${d.status=='sudah_selesai'?'Kuis sudah kamu kerjakan 👍':'Belum ada kuis'}</h2><button class=b id=bk>Kembali</button></div>`;$('#bk').onclick=menu;return}
+ S.fq=d.soal;S.fn=0;S.fj=[];soalF()}catch(e){galat(kuis)}}
+function soalF(){const q=S.fq[S.fn];
+ app.innerHTML=`<div class=c><div class=bar><i style="width:${S.fn/S.fq.length*100}%"></i></div><h2>📝 Soal ${S.fn+1}/${S.fq.length}</h2><h3>${esc(q.pertanyaan)} <button class="b s g" id=sp>🔊</button></h3>`+(q.tipe=='pilihan_ganda'?q.opsi.map((o,i)=>`<button class="b o" data-i="${i}">${esc(o)}</button>`).join(''):'<input id=jw placeholder="Ketik jawabanmu"><button class=b id=ok>Lanjut ➜</button>')+'</div>';
+ const nx=v=>{S.fj.push({soal_id:q.id,jawaban:v});S.fn++;S.fn<S.fq.length?soalF():kirimF()};
+ app.querySelectorAll('.o').forEach(b=>b.onclick=()=>nx(+b.dataset.i));
+ const ok=$('#ok');if(ok)ok.onclick=()=>nx($('#jw').value.trim());
+ $('#sp').onclick=()=>bicara(q.pertanyaan)}
+async function kirimF(){app.innerHTML='<div class=c><h2>Mengirim…</h2></div>';
+ try{await R('kirim_formatif',{p_token:S.tok,p_jawaban:S.fj});app.innerHTML='<div class=c><h1>🎉 Kuis selesai!</h1><button class=b id=bk>Kembali</button></div>';$('#bk').onclick=menu}catch(e){galat(kirimF)}}
+function kode(){app.innerHTML='<div class=c><h2>🎮 Kode hasil game</h2><input id=kk2 placeholder="Contoh: ABC-80-27"><button class=b id=ks2>Kirim kode</button><button class="b g" id=bk>Kembali</button><p id=pm class=e></p></div>';
+ $('#bk').onclick=menu;
+ $('#ks2').onclick=async()=>{try{const d=await R('kirim_kode_miniapp',{p_token:S.tok,p_kode:$('#kk2').value});
+  const M={ok:'Kode diterima ✅',sudah_tercatat:'Kode ini sudah tercatat ✅',format_salah:'Format kode salah. Contoh: ABC-80-27',kode_salah:'Kode tidak cocok. Periksa lagi ya.',kode_tidak_dikenal:'Kode game ini belum dikenal.',tidak_ada:'Belum ada game hari ini.'};
+  $('#pm').textContent=M[d.status]||'Coba lagi';$('#pm').style.color=/^(ok|sudah_tercatat)$/.test(d.status)?'#2b8a3e':'#c92a2a'}
+  catch(e){$('#pm').textContent='Sinyal bermasalah, coba lagi.'}}}
 
 (P.has('s')?masuk:guru)();
 </script></body></html>
