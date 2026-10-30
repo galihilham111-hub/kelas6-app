@@ -127,11 +127,11 @@ async function muat(){
 }
 function ui(){
  clearInterval(tm);
- app.innerHTML=`<div class=w><div style="display:flex;gap:6px;align-items:center;margin-bottom:8px"><b>Kelas:</b><select id=kl>${KL.map(x=>`<option value="${x.id}" ${x.id==K.id?'selected':''}>${esc(x.nama)} (Fase ${x.fase})`).join('')}</select><button class="b s g" id=kb>＋ Kelas baru</button></div><nav><button class="b s ${tab=='d'?'':'g'}" id=t1>Dasbor</button><button class="b s ${tab=='s'?'':'g'}" id=t2>Siswa &amp; Kartu</button><button class="b s ${tab=='k'?'':'g'}" id=t5>Kelompok &amp; Model</button><button class="b s ${tab=='m'?'':'g'}" id=t6>Modul Ajar</button><button class="b s ${tab=='p'?'':'g'}" id=t7>Perangkat Belajar</button><button class="b s ${tab=='c'?'':'g'}" id=t8>Capaian</button><button class="b s ${tab=='b'?'':'g'}" id=t4>Bank Soal</button><button class="b s g" id=t3>Keluar</button></nav><div id=bd></div></div>`;
+ app.innerHTML=`<div class=w><div style="display:flex;gap:6px;align-items:center;margin-bottom:8px"><b>Kelas:</b><select id=kl>${KL.map(x=>`<option value="${x.id}" ${x.id==K.id?'selected':''}>${esc(x.nama)} (Fase ${x.fase})`).join('')}</select><button class="b s g" id=kb>＋ Kelas baru</button></div><nav><button class="b s ${tab=='d'?'':'g'}" id=t1>Dasbor</button><button class="b s ${tab=='s'?'':'g'}" id=t2>Siswa &amp; Kartu</button><button class="b s ${tab=='k'?'':'g'}" id=t5>Kelompok &amp; Model</button><button class="b s ${tab=='m'?'':'g'}" id=t6>Modul Ajar</button><button class="b s ${tab=='p'?'':'g'}" id=t7>Perangkat Belajar</button><button class="b s ${tab=='c'?'':'g'}" id=t8>Capaian</button><button class="b s ${tab=='r'?'':'g'}" id=t9>Kartu Rangkuman</button><button class="b s ${tab=='b'?'':'g'}" id=t4>Bank Soal</button><button class="b s g" id=t3>Keluar</button></nav><div id=bd></div></div>`;
  $('#t1').onclick=()=>{tab='d';ui()};$('#kb').onclick=kelasBaru;
- $('#kl').onchange=async e=>{K=KL.find(x=>x.id==e.target.value);localStorage.setItem('kelasId',K.id);G=null;PK=null;W={id:null,isi:{}};F={};await muat();ui()};$('#t4').onclick=()=>{tab='b';ui()};$('#t5').onclick=()=>{tab='k';ui()};$('#t6').onclick=()=>{tab='m';ui()};$('#t7').onclick=()=>{tab='p';ui()};$('#t8').onclick=()=>{tab='c';ui()};$('#t2').onclick=()=>{tab='s';ui()};
+ $('#kl').onchange=async e=>{K=KL.find(x=>x.id==e.target.value);localStorage.setItem('kelasId',K.id);G=null;PK=null;W={id:null,isi:{}};F={};await muat();ui()};$('#t4').onclick=()=>{tab='b';ui()};$('#t5').onclick=()=>{tab='k';ui()};$('#t6').onclick=()=>{tab='m';ui()};$('#t7').onclick=()=>{tab='p';ui()};$('#t8').onclick=()=>{tab='c';ui()};$('#t9').onclick=()=>{tab='r';ui()};$('#t2').onclick=()=>{tab='s';ui()};
  $('#t3').onclick=async()=>{await sb.auth.signOut();login()};
- tab=='d'?dasbor():tab=='s'?siswaTab():tab=='k'?kel():tab=='m'?mod():tab=='p'?perangkat():tab=='c'?capaian():bank();
+ tab=='d'?dasbor():tab=='s'?siswaTab():tab=='k'?kel():tab=='m'?mod():tab=='p'?perangkat():tab=='c'?capaian():tab=='r'?kartu():bank();
  if(tab=='d'&&SS&&SS.status=='buka')tm=setInterval(async()=>{await muat();dasbor()},5000);
 }
 async function mulai(){const{error}=await sb.rpc('buat_sesi',{p_kelas_id:K.id});if(error)return alert(error.message);await muat();ui()}
@@ -272,7 +272,7 @@ async function kel(){
 const HD=['Identitas','Tujuan Pembelajaran','Dimensi Profil Lulusan','Pemahaman Bermakna dan Pertanyaan Pemantik','Profil Kelas dan Strategi Diferensiasi','Kemitraan, Lingkungan Belajar, dan Pemanfaatan Digital','Kegiatan Pembelajaran','Asesmen','Lampiran','Refleksi Guru dan Siswa'];
 const MP=['Pendidikan Agama dan Budi Pekerti','Pendidikan Pancasila','Bahasa Indonesia','Matematika','IPAS','Seni dan Budaya','PJOK','Bahasa Inggris','Muatan Lokal'];
 let W={id:null,isi:{}},F={};
-function konteks(f){const k=PK,c=(x,l)=>x.filter(h=>h.level==l).length;
+function konteks(f){const pv=localStorage.getItem('prev_'+K.id),k=PK,c=(x,l)=>x.filter(h=>h.level==l).length;
  const g=G?G.gr.map((x,i)=>`- Kelompok ${NM[i]}: ${x.length} siswa (${c(x,'mahir')} mahir, ${c(x,'cakap')} cakap, ${c(x,'berkembang')} berkembang)${x.some(h=>h.khusus)?'; ada siswa yang butuh pendampingan khusus':''}${x.some(h=>h.murung)?'; ada siswa yang suasana hatinya sedang kurang baik':''}`).join('\n'):'';
  return `KONTEKS
 - Mata pelajaran: ${f.mapel}; Kelas ${K.tingkat} SD (Fase ${K.fase}); alokasi waktu: ${f.waktu}
@@ -280,7 +280,7 @@ function konteks(f){const k=PK,c=(x,l)=>x.filter(h=>h.level==l).length;
 - Materi: ${f.materi}
 - Model pembelajaran: ${f.model}; jenis kelompok: ${f.jenis}
 - Profil kelas (${k.n} siswa, tanpa nama): berkembang ${k.lv.berkembang}%, cakap ${k.lv.cakap}%, mahir ${k.lv.mahir}%; semangat rata-rata ${k.semangat}/5; ${k.murung}% suasana hati kurang baik; ${k.belumSarapan}% belum sarapan; gaya belajar terbanyak: ${k.gaya.join(', ').replace(/_/g,' ')}; tema favorit: ${k.tema.join(', ')}
-- Saran pembuka dari sistem: ${k.buka}
+- Saran pembuka dari sistem: ${k.buka}${pv?'\n- '+pv+' Rancang kegiatan yang menuntaskan bagian yang belum dikuasai.':''}
 ${g?'- Susunan kelompok:\n'+g:'- Susunan kelompok belum ditentukan; rancang diferensiasi untuk tiga level (berkembang, cakap, mahir).'}`}
 const A1=`- Bagian 2 Tujuan Pembelajaran: tulis TP, lalu 3-4 indikator ketercapaian terukur bernomor ("Indikator 1: ...", dst.).
 - Bagian 3: pilih 2-3 dari 8 dimensi Profil Lulusan (keimanan dan ketakwaan, kewargaan, penalaran kritis, kreativitas, kolaborasi, kemandirian, kesehatan, komunikasi) dan jelaskan cara menguatkannya.
@@ -487,10 +487,12 @@ async function capaian(){
   else if(q.tipe=='pilihan_ganda'){const c={};a.filter(x=>!x.benar).forEach(x=>c[x.jawaban]=(c[x.jawaban]||0)+1);const t=Object.entries(c).sort((x,y)=>y[1]-x[1])[0];
    if(t&&t[1]/a.length>=.4)mis.push(`Indikator ${q.indikator_no}: ${Math.round(100*t[1]/a.length)}% memilih "${esc(q.opsi[t[0]])}" pada "${esc(q.pertanyaan.slice(0,60))}…" — kemungkinan miskonsepsi.`)}});
  const fl=s=>{const c=SS&&SS.cd&&SS.cd[s.id];return c&&(c.perasaan_berangkat<=2||c.perasaan_sekarang<=2||c.sarapan=='belum'||c.tidur=='sangat_kurang')};
+ CAP={IN,it,aktif,sc,mis};
  bd.innerHTML=`<div class=k><b>Ringkasan kelas</b> — ${esc(F.mapel||'')} ${esc(F.materi||'')}${dik}${mis.length?'<p><b>Perlu perhatian</b></p>'+mis.map(x=>'<div>⚠️ '+x+'</div>').join(''):''}</div>
  <div class=k><b>Capaian per siswa</b><div style="overflow-x:auto"><table><tr><th>Siswa${IN.map(i=>`<th title="${esc(it[i]||'')}">Ind. ${i}`).join('')}<th>Refleksi</tr>${aktif.map(s=>`<tr><td>${esc(s.nama)}${IN.map(i=>{const p=sc(s.id,i),l=lvl(p),f=(FB[s.id]||{})[i];
   return`<td>${l?`<b style="color:${l[2]}">${l[1]}</b>${fl(s)&&p<65?' ⚠️':''}`:'<small>data belum cukup</small>'}<br><small>${f?f.b+'/'+f.t+' kuis':''}</small><br><select data-g="${s.id}|${i}" style="width:72px"><option value="">guru</option>${[1,2,3,4].map(v=>`<option ${(GU[s.id]||{})[i]==v?'selected':''}>${v}</option>`).join('')}</select>`}).join('')}<td>${RE[RF[s.id]]||''}</tr>`).join('')}</table></div>
- <small>Pilihan "guru" = nilai observasi Anda (1-4). Level: gabungan kuis ${Math.round(wf*100)}%, guru ${Math.round(wg*100)}%, game ${Math.round(wm*100)}%. Minimal 2 soal kuis per indikator, kalau kurang dan belum ada nilai guru tertulis "data belum cukup". ⚠️ = hasil rendah pada siswa yang hari ini murung, belum sarapan, atau kurang tidur, jadi konfirmasi ulang dulu. Level hanyalah usulan.</small></div>`;
+ <small>Pilihan "guru" = nilai observasi Anda (1-4). Level: gabungan kuis ${Math.round(wf*100)}%, guru ${Math.round(wg*100)}%, game ${Math.round(wm*100)}%. Minimal 2 soal kuis per indikator, kalau kurang dan belum ada nilai guru tertulis "data belum cukup". ⚠️ = hasil rendah pada siswa yang hari ini murung, belum sarapan, atau kurang tidur, jadi konfirmasi ulang dulu. Level hanyalah usulan.</small></div><div class=k><b>Tindak lanjut</b><button class=b id=rp>📌 Rencanakan pertemuan berikutnya</button><div id=rpv></div></div>`;
+ $('#rp').onclick=rencana;
  bd.querySelectorAll('[data-g]').forEach(e=>e.onchange=async()=>{const[sid,i]=e.dataset.g.split('|');
   const r=e.value?await sb.from('penilaian_guru').upsert({siswa_id:sid,modul_id:W.id,indikator_no:+i,skor:+e.value},{onConflict:'siswa_id,modul_id,indikator_no'}):await sb.from('penilaian_guru').delete().eq('siswa_id',sid).eq('modul_id',W.id).eq('indikator_no',+i);
   if(r.error)return alert(r.error.message);capaian()});
@@ -502,6 +504,67 @@ function refl(){
  $('#rs').onclick=async()=>{if(!v)return alert('Pilih salah satu dulu ya.');
   try{await R('simpan_refleksi',{p_token:S.tok,p_tingkat:v,p_kalimat:$('#rk').value});app.innerHTML='<div class=c><h1>Terima kasih! 💛</h1><button class=b id=bk>Kembali</button></div>';$('#bk').onclick=menu}
   catch(e){alert('Sinyal bermasalah, coba lagi.')}};
+}
+
+/* ================= RENCANA PERTEMUAN & KARTU RANGKUMAN ================= */
+let CAP=null;
+const tx=h=>{const d=document.createElement('div');d.innerHTML=h;return d.textContent};
+function rencana(){
+ const{IN,it,aktif,sc,mis}=CAP,v=$('#rpv');
+ const ov=aktif.map(s=>{const a=IN.map(i=>sc(s.id,i)).filter(x=>x!=null);return{s,skor:a.length?a.reduce((x,y)=>x+y,0)/a.length:null,low:IN.filter(i=>{const p=sc(s.id,i);return p!=null&&p<65})}}).filter(x=>x.skor!=null);
+ if(!ov.length){v.innerHTML='<p>Belum ada data capaian untuk direncanakan.</p>';return}
+ const pen=ov.filter(x=>x.low.length),eng=ov.filter(x=>!x.low.length&&x.skor>=85);
+ const ind=IN.map(i=>{const a=aktif.map(s=>sc(s.id,i)).filter(x=>x!=null);return{i,p:a.length?Math.round(100*a.filter(x=>x>=65).length/a.length):null}});
+ const lemah=ind.filter(x=>x.p!=null&&x.p<70).map(x=>x.i);
+ const teks=`Capaian pertemuan sebelumnya (${F.mapel} - ${F.materi}, ${ov.length} siswa terdata): `+ind.map(x=>`Indikator ${x.i}${it[x.i]?' ('+it[x.i].slice(0,60)+')':''} ${x.p==null?'data belum cukup':x.p+'% Cakap/Mahir'}`).join('; ')+`. ${pen.length} siswa perlu penguatan, ${eng.length} siswa siap pengayaan.`+(mis.length?' Kemungkinan miskonsepsi: '+mis.map(tx).join(' | ')+'.':'')+(lemah.length?' Prioritaskan pengulangan Indikator '+lemah.join(', ')+'.':'');
+ const H=pen.map(x=>({id:x.s.id,nama:x.s.nama,skor:x.skor,low:x.low,level:lvl(x.skor)[1]}));
+ const gr=H.length?susun(H,'homogen',Math.ceil(H.length/5)):[];
+ const card=(t,x,ex)=>`<div class=k><b>${t}</b>${ex||''}${x.map(h=>`<div>${esc(h.nama)}</div>`).join('')}</div>`;
+ v.innerHTML=`<p><b>Perlu penguatan: ${pen.length} siswa</b> · <b>Siap pengayaan: ${eng.length} siswa</b></p>
+ <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">${gr.map((x,i)=>{const c={};x.forEach(h=>h.low.forEach(n=>c[n]=(c[n]||0)+1));const t=Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,3).map(e=>e[0]);
+  return card('Kelompok '+NM[i],x,`<br><small>Latihan: Indikator ${t.join(', ')}</small>`)}).join('')}${eng.length?card('Kelompok '+NM[gr.length%NM.length]+' (pengayaan)',eng.map(x=>({nama:x.s.nama})),'<br><small>Tantangan lanjutan</small>'):''}</div>
+ <p><b>Ringkasan tanpa nama</b> (aman untuk ditempel ke AI)</p><textarea id=rt rows=5 readonly>${esc(teks)}</textarea>
+ <button class=b id=rpk>✅ Pakai di prompt modul berikutnya</button><button class="b g" id=rhp>Hapus ringkasan tersimpan</button>
+ <small>${localStorage.getItem('prev_'+K.id)?'Ada ringkasan tersimpan yang otomatis ikut ke prompt modul.':''}</small>`;
+ $('#rpk').onclick=()=>{localStorage.setItem('prev_'+K.id,teks);alert('Tersimpan. Prompt modul ajar berikutnya otomatis memuat ringkasan ini.')};
+ $('#rhp').onclick=()=>{localStorage.removeItem('prev_'+K.id);alert('Ringkasan dihapus.')};
+}
+async function hitungModul(m,P0){
+ const{data:Q}=await sb.from('soal_formatif').select('id,indikator_no').eq('modul_id',m.id).eq('status','disetujui');
+ const qs=Q||[],ids=qs.map(x=>x.id),E0=Promise.resolve({data:[]});
+ const[hf,pg,hm]=await Promise.all([ids.length?sb.from('hasil_formatif').select('siswa_id,soal_id,benar').in('soal_id',ids):E0,sb.from('penilaian_guru').select('*').eq('modul_id',m.id),sb.from('hasil_miniapp').select('siswa_id,skor').eq('modul_id',m.id)]);
+ const wf=P0.bobot_formatif??.5,wg=P0.bobot_guru??.35,wm=P0.bobot_miniapp??.15,qi=Object.fromEntries(qs.map(x=>[x.id,x])),FB={},GU={},MA={};
+ (hf.data||[]).forEach(x=>{const q=qi[x.soal_id];if(!q)return;const a=FB[x.siswa_id]=FB[x.siswa_id]||{},o=a[q.indikator_no]=a[q.indikator_no]||{b:0,t:0};o.t++;if(x.benar)o.b++});
+ (pg.data||[]).forEach(x=>{(GU[x.siswa_id]=GU[x.siswa_id]||{})[x.indikator_no]=x.skor});
+ (hm.data||[]).forEach(x=>{(MA[x.siswa_id]=MA[x.siswa_id]||[]).push(x.skor)});
+ const isi=m.isi||{},it={};[...(isi[2]||'').matchAll(/indikator\s*(\d+)\s*[:.\-]\s*(.+)/gi)].forEach(r=>it[+r[1]]=r[2].replace(/[*_]/g,'').trim());
+ const N=Math.max(...Object.keys(it).map(Number),...qs.map(x=>x.indikator_no||0),0),IN=Array.from({length:N},(_,i)=>i+1);
+ const sc=(s,i)=>{const c=[],f=(FB[s]||{})[i],g=(GU[s]||{})[i];if(f&&f.t>=2)c.push([wf,100*f.b/f.t]);if(g)c.push([wg,g/4*100]);
+  if(!c.length)return null;if(MA[s])c.push([wm,MA[s].reduce((a,b)=>a+b,0)/MA[s].length]);return c.reduce((a,x)=>a+x[0]*x[1],0)/c.reduce((a,x)=>a+x[0],0)};
+ return{m,IN,it,sc};
+}
+function kartu(){
+ const h=new Date().toLocaleDateString('sv',{timeZone:'Asia/Jakarta'}),d0=new Date(Date.now()-30*864e5).toLocaleDateString('sv',{timeZone:'Asia/Jakarta'});
+ $('#bd').innerHTML=`<div class=k><b>Kartu rangkuman untuk orang tua</b><br>Dari <input type=date id=d1 value="${d0}"> sampai <input type=date id=d2 value="${h}"><select id=ks><option value="">Semua siswa</option>${SW.filter(s=>s.aktif).map(s=>`<option value="${s.id}">${esc(s.nama)}`).join('')}</select><button class=b id=kb2>🖨 Buat kartu</button>
+ <small>Kartu merangkum semua modul pada periode itu. Data sensitif (suasana hati, sarapan, tidur) dan perbandingan antar siswa tidak dicetak. Isi kartu bisa Anda ketik ulang sebelum dicetak. Bagikan dalam amplop tertutup.</small></div>`;
+ $('#kb2').onclick=buatKartu;
+}
+async function buatKartu(){
+ const d1=$('#d1').value,d2=$('#d2').value,only=$('#ks').value;
+ const{data:Mo}=await sb.from('modul').select('*').eq('kelas_id',K.id).gte('dibuat_pada',d1).lte('dibuat_pada',d2+'T23:59:59+07:00').order('dibuat_pada');
+ if(!Mo||!Mo.length)return alert('Tidak ada modul pada periode itu.');
+ const{data:pr}=await sb.from('pengaturan').select('*').eq('kelas_id',K.id),P0=(pr||[])[0]||{};
+ const D=await Promise.all(Mo.map(m=>hitungModul(m,P0))),sw=SW.filter(s=>s.aktif&&(!only||s.id==only));
+ const kt=sw.map(s=>{const baik=[],latih=[];
+  D.forEach(d=>d.IN.forEach(i=>{const p=d.sc(s.id,i);if(p==null)return;(p>=65?baik:latih).push(esc(d.m.mapel)+': '+esc(d.it[i]||'Indikator '+i))}));
+  const ul=a=>'<ul>'+a.map(x=>'<li>'+x+'</li>').join('')+'</ul>';
+  return `<section><h2>Kartu Perkembangan Belajar</h2><p><b>${esc(s.nama)}</b> · ${esc(K.nama)} · Periode ${d1} s.d. ${d2}</p><p>Materi: ${Mo.map(m=>esc(m.mapel+' - '+m.materi)).join('; ')}</p>
+  <h3>✅ Yang sudah dikuasai</h3>${baik.length?ul(baik):'<p>Belum ada data yang cukup pada periode ini.</p>'}
+  <h3>🌱 Yang sedang dilatih</h3>${latih.length?ul(latih):'<p>Semua bagian yang dinilai sudah baik. Hebat!</p>'}
+  <h3>👣 Langkah berikutnya</h3>${ul(latih.length?['Di sekolah: guru memberi latihan tambahan dengan contoh nyata dan gambar pada bagian yang sedang dilatih.','Di rumah: ajak ananda menjelaskan kembali dengan kata-katanya sendiri sekitar 10 menit sehari, dan berikan pujian atas usahanya.']:['Di sekolah: ananda diberi tantangan lanjutan.','Di rumah: ajak ananda menerapkan pelajaran ini pada kegiatan sehari-hari.'])}
+  <h3>⭐ Apresiasi usaha</h3><div class=ln></div><h3>Catatan guru</h3><div class=ln></div><div class=ln></div><h3>Tanggapan orang tua</h3><div class=bx></div></section>`}).join('');
+ const w=open('');w.document.write(`<html><head><meta charset="utf-8"><title>Kartu Perkembangan</title><style>body{font-family:Calibri,Arial,sans-serif;font-size:14px}section{page-break-after:always;padding:8px 16px}.ln{border-bottom:1px solid #888;height:28px}.bx{border:1px solid #888;height:80px}.np{background:#fff3bf;padding:8px;margin-bottom:8px}@media print{.np{display:none}}h2{margin:0 0 6px}h3{margin:12px 0 4px}</style></head><body contenteditable><div class=np contenteditable=false>Anda bisa mengetik langsung untuk mengubah isi. <button onclick="print()">🖨 Cetak</button></div>${kt}</body></html>`);w.document.close();
+ await sb.from('log_cetak_kartu').insert(sw.map(s=>({siswa_id:s.id,periode_mulai:d1,periode_akhir:d2})));
 }
 
 (P.has('s')?masuk:guru)();
